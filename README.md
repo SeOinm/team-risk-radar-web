@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# 팀플 리스크 레이더 (Team Risk Radar)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 팀 프로젝트(팀플)에서 발생하는 리스크를 조기에 발견하고 관리하는 웹 서비스
 
-Currently, two official plugins are available:
+졸업프로젝트1 팀 과제로 진행 중인 프로젝트입니다.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 소개
 
-## React Compiler
+조별 과제를 하다 보면 "누가 얼마나 하고 있는지", "어떤 작업이 막혀 있는지", "마감까지 무리는 없는지" 파악하기 어렵습니다.
+**팀플 리스크 레이더**는 정기 체크인과 작업 현황을 바탕으로 팀의 리스크를 점수화하여, 문제를 미리 알아챌 수 있도록 돕는 대시보드형 서비스입니다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 주요 기능
 
-## Expanding the ESLint configuration
+- **리스크 진단** — 작업 진행도, 체크인 참여율, 지연 여부를 종합해 리스크 점수와 등급(안정 / 관찰 / 주의 / 위험 / 심각)을 산출
+- **정기 체크인** — 지정한 요일·시간마다 팀원이 작업 현황을 업데이트, 완료/지각/누락 자동 집계
+- **작업 보드** — 작업 크기(S/M/L/XL), 담당자, 선행 작업, 진행 상태 관리
+- **팀원 참여 현황** — 구성원별 작업량, 체크인율, 상태 라벨로 참여도 한눈에 파악
+- **타임라인 & 최종 리포트** — 프로젝트 진행 이력과 종료 시 결과 리포트 제공
+- **팀장 / 팀원 분리 흐름** — 역할에 따라 다른 화면과 권한 제공
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 기술 스택
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **React 19** + **TypeScript**
+- **Vite** (빌드 / 개발 서버)
+- **React Router** (라우팅)
+- **Tailwind CSS 4** + **Radix UI** (UI)
+- **Recharts** (차트 / 시각화)
+- **Lucide** (아이콘)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 시작하기
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# 의존성 설치
+npm install
+
+# 개발 서버 실행
+npm run dev
+
+# 프로덕션 빌드
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 프로젝트 구조
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── pages/        # 화면 단위 페이지 (대시보드, 체크인, 작업 보드 등)
+├── components/   # 재사용 컴포넌트 (RiskBadge, RiskGauge, UI 등)
+├── data/         # 샘플 데이터
+├── types/        # 공통 도메인 타입 정의
+└── App.tsx       # 라우팅 정의
 ```
