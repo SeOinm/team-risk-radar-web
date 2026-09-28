@@ -1,115 +1,109 @@
 import { useNavigate } from 'react-router';
-import { BarChart3, Users, Shield, TrendingUp } from 'lucide-react';
+import { Shield, BarChart3, Users, Zap, ChevronRight } from 'lucide-react';
+import { Btn } from '@/components/ds';
+
+const NAV_LINKS = [
+  { label: '작업 상세', path: '/task/t2' },
+  { label: '대시보드', path: '/dashboard' },
+  { label: '작업 보드', path: '/task-board' },
+  { label: '체크인 현황', path: '/checkin-status' },
+  { label: '타임라인', path: '/timeline' },
+  { label: '팀원 체크인', path: '/checkin' },
+  { label: '리포트', path: '/report' },
+];
 
 export function Home() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-            <Shield className="w-4 h-4" />
-            <span className="text-sm font-medium">팀 프로젝트 리스크 관리</span>
+    <div className="min-h-screen bg-white">
+      {/* Top nav */}
+      <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
+        <div className="max-w-5xl mx-auto px-6 w-full flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-[#111827]" />
+            <span className="text-[13px] font-semibold text-[#111827]">팀플 리스크 레이더</span>
           </div>
-          <h1 className="mb-4 text-5xl">팀플 리스크 레이더</h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            대학생 팀 프로젝트에서 무임승차·역할 불균형·병목·체크인 누락·마감 위험을 조기에 감지하고
-            "무엇이 왜 위험한지"를 설명해주는 서비스
-          </p>
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => navigate('/auth')}
-              className="px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-            >
-              팀장으로 프로젝트 시작하기
-            </button>
-            <button
-              onClick={() => navigate('/auth')}
-              className="px-8 py-4 bg-card border border-border rounded-lg font-medium hover:bg-accent transition-colors"
-            >
-              팀원으로 참여하기
-            </button>
+          <div className="flex items-center gap-2">
+            <Btn variant="ghost" size="sm" onClick={() => navigate('/auth')}>로그인</Btn>
+            <Btn variant="primary" size="sm" onClick={() => navigate('/auth')}>프로젝트 시작</Btn>
           </div>
         </div>
+      </header>
 
-        <div className="grid grid-cols-3 gap-6 mb-16">
-          <div className="bg-card rounded-xl border border-border p-6">
-            <div className="w-12 h-12 rounded-lg bg-risk-safe/20 flex items-center justify-center mb-4">
-              <BarChart3 className="w-6 h-6" style={{ color: 'oklch(0.65 0.15 145)' }} />
-            </div>
-            <h3 className="mb-2">리스크 조기 감지</h3>
-            <p className="text-sm text-muted-foreground">
-              작업 지연, 역할 편중, 체크인 누락을 자동으로 감지하고 경고합니다
-            </p>
-          </div>
+      {/* Hero */}
+      <section className="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
+        <div className="inline-flex items-center gap-2 px-3 h-7 rounded-full border border-[#E5E7EB] bg-[#F9FAFB] mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+          <span className="text-[11px] font-medium text-[#374151]">대학생 팀 프로젝트 리스크 관리</span>
+        </div>
+        <h1 className="text-[36px] font-bold text-[#111827] tracking-tight leading-tight mb-4">
+          팀 프로젝트의 리스크를<br />
+          조기에 발견하세요
+        </h1>
+        <p className="text-[15px] text-[#6B7280] max-w-xl mx-auto mb-8">
+          무임승차, 역할 불균형, 병목, 체크인 누락, 마감 위험을 자동으로 감지하고
+          "무엇이 왜 위험한지"를 명확히 설명합니다.
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <Btn variant="primary" className="h-10 px-6 text-[14px]" onClick={() => navigate('/auth')}>
+            팀장으로 시작하기
+          </Btn>
+          <Btn variant="secondary" className="h-10 px-6 text-[14px]" onClick={() => navigate('/auth')}>
+            팀원으로 참여하기
+          </Btn>
+        </div>
+      </section>
 
-          <div className="bg-card rounded-xl border border-border p-6">
-            <div className="w-12 h-12 rounded-lg bg-risk-watch/20 flex items-center justify-center mb-4">
-              <Users className="w-6 h-6" style={{ color: 'oklch(0.65 0.12 220)' }} />
+      {/* Feature strip */}
+      <section className="border-y border-[#E5E7EB]">
+        <div className="max-w-5xl mx-auto px-6 py-10 grid grid-cols-3 gap-6">
+          {[
+            {
+              Icon: BarChart3,
+              title: '리스크 조기 감지',
+              desc: '작업 지연, 역할 편중, 체크인 누락을 자동으로 감지하고 위험 수준을 점수로 표시합니다',
+            },
+            {
+              Icon: Users,
+              title: '1분 체크인',
+              desc: '팀원들은 간단한 체크인만으로 진행 상황을 공유할 수 있습니다',
+            },
+            {
+              Icon: Zap,
+              title: '실행 가능한 인사이트',
+              desc: '단순 경고가 아닌 원인·근거·해결 방안을 함께 제공합니다',
+            },
+          ].map(({ Icon, title, desc }) => (
+            <div key={title} className="space-y-2">
+              <div className="w-8 h-8 rounded-md bg-[#F3F4F6] flex items-center justify-center mb-3">
+                <Icon className="w-4 h-4 text-[#374151]" />
+              </div>
+              <p className="text-[14px] font-semibold text-[#111827]">{title}</p>
+              <p className="text-[12px] text-[#6B7280] leading-relaxed">{desc}</p>
             </div>
-            <h3 className="mb-2">1분 체크인</h3>
-            <p className="text-sm text-muted-foreground">
-              팀원들은 간단한 체크인만으로 진행 상황을 공유할 수 있습니다
-            </p>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="bg-card rounded-xl border border-border p-6">
-            <div className="w-12 h-12 rounded-lg bg-risk-caution/20 flex items-center justify-center mb-4">
-              <TrendingUp className="w-6 h-6" style={{ color: 'oklch(0.65 0.14 85)' }} />
-            </div>
-            <h3 className="mb-2">실행 가능한 인사이트</h3>
-            <p className="text-sm text-muted-foreground">
-              단순 경고가 아닌 "무엇이 왜 위험한지"와 "어떻게 해결할지"를 제안합니다
-            </p>
+      {/* Demo nav */}
+      <section className="max-w-5xl mx-auto px-6 py-10">
+        <p className="text-[12px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-4">빠른 둘러보기</p>
+        <div className="border border-[#E5E7EB] rounded-md overflow-hidden">
+          <div className="divide-y divide-[#E5E7EB]">
+            {NAV_LINKS.map(({ label, path }) => (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-[#F9FAFB] text-left transition-colors group"
+              >
+                <span className="text-[13px] font-medium text-[#111827]">{label}</span>
+                <ChevronRight className="w-4 h-4 text-[#D1D5DB] group-hover:text-[#9CA3AF]" />
+              </button>
+            ))}
           </div>
         </div>
-
-        <div className="bg-card rounded-xl border border-border p-8">
-          <h2 className="mb-6 text-center">빠른 둘러보기</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-6 rounded-lg border-2 border-border hover:border-primary transition-colors text-left"
-            >
-              <h3 className="mb-2">팀장 대시보드</h3>
-              <p className="text-sm text-muted-foreground">
-                리스크 점수, 병목 작업, 역할 편중 현황을 한눈에 확인
-              </p>
-            </button>
-
-            <button
-              onClick={() => navigate('/checkin')}
-              className="p-6 rounded-lg border-2 border-border hover:border-primary transition-colors text-left"
-            >
-              <h3 className="mb-2">팀원 체크인</h3>
-              <p className="text-sm text-muted-foreground">
-                1분 안에 작업 진행 상황과 어려움을 공유
-              </p>
-            </button>
-
-            <button
-              onClick={() => navigate('/task/2')}
-              className="p-6 rounded-lg border-2 border-border hover:border-primary transition-colors text-left"
-            >
-              <h3 className="mb-2">작업 상세</h3>
-              <p className="text-sm text-muted-foreground">
-                각 작업이 왜 위험한지, 어떻게 해결할지 확인
-              </p>
-            </button>
-
-            <button
-              onClick={() => navigate('/report')}
-              className="p-6 rounded-lg border-2 border-border hover:border-primary transition-colors text-left"
-            >
-              <h3 className="mb-2">최종 리포트</h3>
-              <p className="text-sm text-muted-foreground">
-                팀원별 참여 요약과 산출물 근거를 자동 생성
-              </p>
-            </button>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

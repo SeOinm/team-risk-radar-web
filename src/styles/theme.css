@@ -1,0 +1,228 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 14px;
+
+  /* Base palette — neutral whites and grays */
+  --background: #ffffff;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+
+  /* Primary — near-black, like Linear */
+  --primary: #111827;
+  --primary-foreground: #ffffff;
+
+  /* Secondary / muted surfaces */
+  --secondary: #F3F4F6;
+  --secondary-foreground: #374151;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #F9FAFB;
+  --accent-foreground: #374151;
+
+  /* Semantic */
+  --destructive: #DC2626;
+  --destructive-foreground: #ffffff;
+
+  /* Border — single token, 1px only */
+  --border: #E5E7EB;
+  --input: #ffffff;
+  --input-background: #F9FAFB;
+  --switch-background: #D1D5DB;
+  --ring: #111827;
+
+  /* Border radius — compact */
+  --radius: 0.375rem; /* 6px base */
+
+  /* Risk level colors — meaningful only */
+  --risk-safe: #16A34A;
+  --risk-safe-bg: #F0FDF4;
+  --risk-safe-border: #BBF7D0;
+  --risk-safe-foreground: #14532D;
+
+  --risk-watch: #2563EB;
+  --risk-watch-bg: #EFF6FF;
+  --risk-watch-border: #BFDBFE;
+  --risk-watch-foreground: #1E3A8A;
+
+  --risk-caution: #D97706;
+  --risk-caution-bg: #FFFBEB;
+  --risk-caution-border: #FDE68A;
+  --risk-caution-foreground: #78350F;
+
+  --risk-danger: #EA580C;
+  --risk-danger-bg: #FFF7ED;
+  --risk-danger-border: #FED7AA;
+  --risk-danger-foreground: #7C2D12;
+
+  --risk-critical: #DC2626;
+  --risk-critical-bg: #FEF2F2;
+  --risk-critical-border: #FECACA;
+  --risk-critical-foreground: #7F1D1D;
+
+  /* Font weights */
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+
+  /* Chart colors */
+  --chart-1: #2563EB;
+  --chart-2: #16A34A;
+  --chart-3: #D97706;
+  --chart-4: #EA580C;
+  --chart-5: #DC2626;
+
+  /* Sidebar (kept for shadcn compat) */
+  --sidebar: #F9FAFB;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #111827;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #F3F4F6;
+  --sidebar-accent-foreground: #374151;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #111827;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-risk-safe: var(--risk-safe);
+  --color-risk-safe-bg: var(--risk-safe-bg);
+  --color-risk-safe-border: var(--risk-safe-border);
+  --color-risk-safe-foreground: var(--risk-safe-foreground);
+
+  --color-risk-watch: var(--risk-watch);
+  --color-risk-watch-bg: var(--risk-watch-bg);
+  --color-risk-watch-border: var(--risk-watch-border);
+  --color-risk-watch-foreground: var(--risk-watch-foreground);
+
+  --color-risk-caution: var(--risk-caution);
+  --color-risk-caution-bg: var(--risk-caution-bg);
+  --color-risk-caution-border: var(--risk-caution-border);
+  --color-risk-caution-foreground: var(--risk-caution-foreground);
+
+  --color-risk-danger: var(--risk-danger);
+  --color-risk-danger-bg: var(--risk-danger-bg);
+  --color-risk-danger-border: var(--risk-danger-border);
+  --color-risk-danger-foreground: var(--risk-danger-foreground);
+
+  --color-risk-critical: var(--risk-critical);
+  --color-risk-critical-bg: var(--risk-critical-bg);
+  --color-risk-critical-border: var(--risk-critical-border);
+  --color-risk-critical-foreground: var(--risk-critical-foreground);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: var(--font-size);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: #111827;
+  }
+
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+    color: #111827;
+  }
+
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #374151;
+  }
+
+  h4 {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #374151;
+  }
+
+  p {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #374151;
+  }
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #374151;
+  }
+
+  button {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    font-family: inherit;
+  }
+
+  input, textarea, select {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.4;
+    font-family: inherit;
+  }
+}
