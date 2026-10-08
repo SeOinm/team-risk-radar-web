@@ -175,7 +175,8 @@ export function Badge({ children, variant = 'default', className = '' }: { child
 
 // ─── Risk Badge ──────────────────────────────────────────────────────────────
 
-export function RiskScore({ score }: { score: number }) {
+export function RiskScore({ score }: { score: number | null }) {
+  if (score === null) return <Badge variant="outline">위험 점수 · 연동 대기</Badge>;
   const { variant, label } = getRiskInfo(score);
   return (
     <Badge variant={variant}>
@@ -299,7 +300,7 @@ export function NavBack({ label = '뒤로', onClick, fallback }: NavBackProps) {
     else navigate(fallback ?? '/projects', { replace: true });
   };
   return (
-    <button type="button" onClick={handleBack} className="flex items-center gap-1 text-[13px] text-[#6B7280] hover:text-[#111827] transition-colors h-full px-4">
+    <button type="button" onClick={handleBack} className="flex items-center gap-1 text-[13px] leading-5 text-[#6B7280] hover:text-[#111827] transition-colors h-full px-4">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M8.5 3L5 7L8.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>

@@ -3,27 +3,31 @@ import { useAuth } from '@/auth/context';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, ChevronRight } from 'lucide-react';
-import { projectList } from '@/data/sampleData';
+import { projectsApi, ROLE_LABELS } from '@/api/projects';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { Btn, Badge, RiskScore, RoleBadgeDs, FilterTabs, Divider } from '@/components/ds';
 
-type StatusFilter = '전체' | '진행 중' | '완료';
+type StatusFilter = '전체' | '진행 중' | '완료' | '종료';
 type RoleFilter = '전체' | '내가 관리' | '내가 팀원';
 
 export function ProjectList() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { data, loading, error, retry } = useApiQuery(projectsApi.list);
+  const projectList = data ?? [];
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('전체');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('전체');
 
   const filtered = projectList.filter(p => {
     const matchStatus =
       statusFilter === '전체' ||
-      (statusFilter === '진행 중' && p.status === '진행 중') ||
-      (statusFilter === '완료' && p.status === '완료');
+      (statusFilter === '진행 중' && p.status === 'IN_PROGRESS') ||
+      (statusFilter === '완료' && p.status === 'DONE') ||
+      (statusFilter === '종료' && p.status === 'CLOSED');
     const matchRole =
       roleFilter === '전체' ||
-      (roleFilter === '내가 관리' && (p.myRole === '팀장' || p.myRole === '공동 팀장')) ||
-      (roleFilter === '내가 팀원' && p.myRole === '팀원');
+      (roleFilter === '내가 관리' && (p.myRole === 'LEADER' || p.myRole === 'CO_LEADER')) ||
+      (roleFilter === '내가 팀원' && p.myRole === 'MEMBER');
     return matchStatus && matchRole;
   });
 
@@ -50,7 +54,7 @@ export function ProjectList() {
             <h1 className="text-[18px] font-semibold text-[#111827] tracking-tight">내 프로젝트</h1>
             <p className="text-[13px] text-[#6B7280] mt-0.5">참여 중인 팀 프로젝트</p>
           </div>
-          <span className="text-[12px] text-[#9CA3AF]">{projectList.length}개</span>
+          <span className="text-[12px] text-[#9CA3AF]">{loading ? '불러오는 중…' : error ? '' : `${projectList.length}개`}</span>
         </div>
 
         {/* Filters */}
@@ -60,6 +64,7 @@ export function ProjectList() {
               { label: '전체', value: '전체' },
               { label: '진행 중', value: '진행 중' },
               { label: '완료', value: '완료' },
+              { label: '종료', value: '종료' },
             ]}
             value={statusFilter}
             onChange={setStatusFilter}
@@ -77,26 +82,29 @@ export function ProjectList() {
 
         {/* Project list — Linear/GitHub style */}
         <div className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p role="status" className="p-8 text-center text-sm">프로젝트를 불러오고 있습니다…</p>
+          ) : error ? (
+            <div className="p-8 text-center space-y-3"><p role="alert">{error}</p><Btn onClick={retry}>다시 시도</Btn></div>
+          ) : filtered.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-[13px] text-[#374151] font-medium mb-1">표시할 프로젝트가 없습니다</p>
               <p className="text-[12px] text-[#9CA3AF]">새 프로젝트를 만들거나 필터를 변경해보세요</p>
             </div>
           ) : (
             filtered.map((project, i) => {
-              const isManager = project.myRole === '팀장' || project.myRole === '공동 팀장';
               return (
                 <div key={project.id}>
                   {i > 0 && <Divider />}
                   <button
-                    onClick={() => navigate(isManager ? '/dashboard' : '/member-home')}
+                    onClick={() => navigate(`/projects/${project.id}`)}
                     className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#F9FAFB] transition-colors text-left group"
                   >
                     {/* Status dot */}
                     <span
                       className="w-2 h-2 rounded-full shrink-0 mt-0.5"
                       style={{
-                        backgroundColor: project.status === '완료' ? '#16A34A' : '#2563EB',
+                        backgroundColor: project.status === 'DONE' ? '#16A34A' : project.status === 'CLOSED' ? '#9CA3AF' : '#2563EB',
                       }}
                     />
 
@@ -104,19 +112,19 @@ export function ProjectList() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[13px] font-medium text-[#111827] truncate">{project.title}</span>
-                        <RoleBadgeDs role={project.myRole} />
+                        <RoleBadgeDs role={ROLE_LABELS[project.myRole]} />
                       </div>
                       <p className="text-[12px] text-[#9CA3AF] mt-0.5">
-                        {project.className} · 마감 {project.deadline}
+                        {project.className ? `${project.className} · ` : ''}마감 {project.deadline}
                       </p>
                     </div>
 
                     {/* Right meta */}
                     <div className="flex items-center gap-3 shrink-0">
-                      {project.status === '완료' ? (
+                      {project.status === 'DONE' ? (
                         <Badge variant="safe">완료</Badge>
                       ) : (
-                        <RiskScore score={project.riskScore} />
+                        project.status === 'CLOSED' ? <Badge variant="default">종료</Badge> : <RiskScore score={null} />
                       )}
                       <ChevronRight className="w-3.5 h-3.5 text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors" />
                     </div>
@@ -130,6 +138,7 @@ export function ProjectList() {
         {/* Quick nav for demo */}
         <div className="mt-10">
           <p className="text-[11px] font-medium text-[#9CA3AF] uppercase tracking-wide mb-3">데모 화면 이동</p>
+          <p className="text-[12px] text-muted-foreground mb-3">아래 화면은 샘플 데이터 미리보기입니다. 위의 실제 프로젝트 정보와는 연결되지 않습니다.</p>
           <div className="grid grid-cols-2 gap-1.5">
             {[
               { label: '팀장 대시보드', path: '/dashboard' },

@@ -170,6 +170,5 @@ export function createAuthApi(baseUrl: string, fetcher: typeof fetch = fetch) {
 
 const deployedApi = 'https://168.138.213.117.sslip.io/api';
 const configuredUrl = import.meta.env?.VITE_API_BASE_URL?.trim();
-export const authApi = createAuthApi(
-  configuredUrl || (import.meta.env?.DEV ? '/api' : deployedApi),
-);
+export const API_BASE_URL = configuredUrl || (import.meta.env?.DEV ? '/api' : deployedApi);
+export const authApi = createAuthApi(API_BASE_URL);
