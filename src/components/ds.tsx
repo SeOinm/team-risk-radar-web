@@ -2,6 +2,7 @@
  * Design System primitives for 팀플 리스크 레이더
  * Linear / Notion / GitHub minimal SaaS aesthetic
  */
+import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import { getRiskInfo, type BadgeVariant } from '@/lib/risk';
 import { useId, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react';
@@ -280,9 +281,25 @@ export function AlertBanner({ level, title, desc, action }: { level: AlertLevel;
 
 // ─── Nav Back ────────────────────────────────────────────────────────────────
 
-export function NavBack({ label, onClick }: { label: string; onClick: () => void }) {
+type NavBackProps =
+  | { fallback: string; label?: never; onClick?: never }
+  | { label: string; onClick: () => void; fallback?: never };
+
+export function NavBack({ label = '뒤로', onClick, fallback }: NavBackProps) {
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+    // BrowserRouter marks app history entries with idx; history.length also
+    // includes external sites and cannot tell whether an in-app return is safe.
+    const index = window.history.state?.idx;
+    if (typeof index === 'number' && index > 0) navigate(-1);
+    else navigate(fallback ?? '/projects', { replace: true });
+  };
   return (
-    <button onClick={onClick} className="flex items-center gap-1 text-[13px] text-[#6B7280] hover:text-[#111827] transition-colors h-full px-4">
+    <button type="button" onClick={handleBack} className="flex items-center gap-1 text-[13px] text-[#6B7280] hover:text-[#111827] transition-colors h-full px-4">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M8.5 3L5 7L8.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>

@@ -31,7 +31,7 @@ export function TaskDetail() {
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
         <div className="max-w-5xl mx-auto px-6 w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <NavBack label="뒤로" onClick={() => navigate(-1)} />
+            <NavBack fallback="/task-board" />
             <div className="h-4 w-px bg-[#E5E7EB]" />
             <div className="flex items-center gap-2">
               <span className={`text-[13px] font-semibold text-[#111827] ${cancelled ? 'line-through text-[#9CA3AF]' : ''}`}>

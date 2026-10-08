@@ -21,7 +21,7 @@ export function MemberManage() {
     <div className="min-h-screen bg-white">
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
         <div className="max-w-3xl mx-auto px-6 w-full flex items-center gap-3">
-          <NavBack label="대시보드" onClick={() => navigate('/dashboard')} />
+          <NavBack fallback="/dashboard" />
           <div className="h-4 w-px bg-[#E5E7EB]" />
           <span className="text-[13px] font-semibold text-[#111827]">팀원 관리</span>
         </div>
