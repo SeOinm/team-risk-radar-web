@@ -1,3 +1,4 @@
+import { useAuth } from '@/auth/context';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, Shield, ChevronRight } from 'lucide-react';
@@ -9,6 +10,7 @@ type RoleFilter = '전체' | '내가 관리' | '내가 팀원';
 
 export function ProjectList() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('전체');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('전체');
 
@@ -33,7 +35,8 @@ export function ProjectList() {
           <span className="text-[13px] font-semibold text-[#111827] tracking-tight">팀플 리스크 레이더</span>
         </div>
         <div className="flex items-center gap-2">
-          <Btn variant="ghost" size="sm" onClick={() => navigate('/auth')}>로그인</Btn>
+          <span className="text-[12px] text-[#6B7280]">{user?.nickname}님</span>
+          <Btn variant="ghost" size="sm" onClick={() => { logout(); navigate('/auth', { replace: true }); }}>로그아웃</Btn>
           <Btn variant="primary" size="sm" onClick={() => navigate('/create-project')}>
             <Plus className="w-3.5 h-3.5" /> 새 프로젝트
           </Btn>

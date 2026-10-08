@@ -1,3 +1,4 @@
+import { RequireAuth } from '@/auth/RequireAuth';
 import { Routes, Route } from 'react-router';
 import { ProjectList } from '@/pages/ProjectList';
 import { Home } from '@/pages/Home';
@@ -36,8 +37,11 @@ export default function App() {
     <Routes>
       {/* 랜딩/목록 */}
       <Route path="/" element={<Home />} />
-      <Route path="/projects" element={<ProjectList />} />
       <Route path="/auth" element={<AuthScreens />} />
+      <Route path="/join" element={<JoinTeam />} />
+
+      <Route element={<RequireAuth />}>
+      <Route path="/projects" element={<ProjectList />} />
 
       {/* 팀장 흐름 */}
       <Route path="/create-project" element={<CreateProject />} />
@@ -45,7 +49,6 @@ export default function App() {
       <Route path="/invite-team" element={<InviteTeam />} />
 
       {/* 팀원 흐름 */}
-      <Route path="/join" element={<JoinTeam />} />
       <Route path="/member-home" element={<MemberHome />} />
       <Route path="/checkin" element={<MemberCheckin />} />
       <Route path="/checkin-complete" element={<CheckinComplete />} />
@@ -63,6 +66,8 @@ export default function App() {
       <Route path="/report" element={<FinalReport />} />
       <Route path="/settings" element={<ProjectSettings />} />
       <Route path="/close-project" element={<ProjectClose />} />
+
+      </Route>
 
       {/* 미정의 경로 */}
       <Route path="*" element={<NotFound />} />
