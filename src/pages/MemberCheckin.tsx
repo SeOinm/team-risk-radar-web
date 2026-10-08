@@ -100,7 +100,7 @@ export function MemberCheckin() {
               <div
                 key={task.id}
                 className={`border rounded-md overflow-hidden ${
-                  task.updated ? 'border-[#111827]' : 'border-[#E5E7EB]'
+                  task.updated ? 'border-primary' : 'border-[#E5E7EB]'
                 }`}
               >
                 {/* Collapse toggle */}
@@ -141,7 +141,7 @@ export function MemberCheckin() {
                             onClick={() => updateTask(task.id, { status: s })}
                             className={`h-8 rounded-md text-[12px] font-medium border transition-colors ${
                               task.status === s
-                                ? 'bg-[#111827] text-white border-[#111827]'
+                                ? 'bg-primary text-white border-primary'
                                 : 'bg-white text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]'
                             }`}
                           >
@@ -161,7 +161,7 @@ export function MemberCheckin() {
                             onClick={() => updateTask(task.id, { progress: p })}
                             className={`flex-1 h-8 rounded-md text-[11px] font-medium border transition-colors ${
                               task.progress === p
-                                ? 'bg-[#111827] text-white border-[#111827]'
+                                ? 'bg-primary text-white border-primary'
                                 : 'bg-white text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]'
                             }`}
                           >
@@ -180,7 +180,7 @@ export function MemberCheckin() {
                         <select
                           value={task.blockReason}
                           onChange={e => updateTask(task.id, { blockReason: e.target.value })}
-                          className="w-full h-8 px-3 text-[12px] bg-white border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-[#111827]"
+                          className="w-full h-8 px-3 text-[12px] bg-white border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring"
                         >
                           <option value="">선택해주세요</option>
                           <option value="time">시간 부족</option>

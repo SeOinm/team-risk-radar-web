@@ -91,7 +91,7 @@ export function CreateProject() {
                     onClick={() => setFormData({ ...formData, projectType: type.value })}
                     className={`h-9 rounded-md border text-[12px] font-medium transition-colors ${
                       formData.projectType === type.value
-                        ? 'bg-[#111827] text-white border-[#111827]'
+                        ? 'bg-primary text-white border-primary'
                         : 'border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]'
                     }`}
                   >
@@ -118,7 +118,7 @@ export function CreateProject() {
                       onClick={() => setFormData({ ...formData, checkinFrequency: n, checkinDays: [] })}
                       className={`w-9 h-9 rounded-md border text-[13px] font-medium transition-colors ${
                         formData.checkinFrequency === n
-                          ? 'bg-[#111827] text-white border-[#111827]'
+                          ? 'bg-primary text-white border-primary'
                           : 'border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]'
                       }`}
                     >
@@ -144,7 +144,7 @@ export function CreateProject() {
                       onClick={() => toggleDay(d)}
                       className={`w-9 h-9 rounded-md border text-[12px] font-medium transition-colors ${
                         formData.checkinDays.includes(d)
-                          ? 'bg-[#111827] text-white border-[#111827]'
+                          ? 'bg-primary text-white border-primary'
                           : 'border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]'
                       }`}
                     >
@@ -161,7 +161,7 @@ export function CreateProject() {
                     type="time"
                     value={formData.checkinTime}
                     onChange={e => setFormData({ ...formData, checkinTime: e.target.value })}
-                    className="h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-[#111827]"
+                    className="h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring"
                   />
                   <p className="text-[11px] text-[#9CA3AF]">마감 이후 제출 시 지각 체크인으로 기록됩니다</p>
                 </div>

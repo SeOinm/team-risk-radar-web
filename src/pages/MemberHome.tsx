@@ -42,7 +42,7 @@ export function MemberHome() {
 
           {/* Check-in card */}
           {todayCheckinDue && !alreadyCheckedIn ? (
-            <div className="border-2 border-[#111827] rounded-md p-4">
+            <div className="border-2 border-primary rounded-md p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="w-4 h-4 text-[#111827]" />
                 <span className="text-[13px] font-semibold text-[#111827]">오늘 체크인 마감 23:59</span>

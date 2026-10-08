@@ -53,7 +53,7 @@ export function Timeline() {
                 key={v}
                 onClick={() => setShowMode(v)}
                 className={`px-3 text-[12px] font-medium h-full transition-colors ${
-                  showMode === v ? 'bg-[#111827] text-white' : 'bg-white text-[#6B7280] hover:bg-[#F3F4F6]'
+                  showMode === v ? 'bg-primary text-white' : 'bg-white text-[#6B7280] hover:bg-[#F3F4F6]'
                 } border-r border-[#E5E7EB] last:border-r-0`}
               >
                 {v}

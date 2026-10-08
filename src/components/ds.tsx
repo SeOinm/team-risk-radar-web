@@ -87,11 +87,11 @@ export function Btn({ variant = 'secondary', size = 'md', children, className = 
     md: 'h-8 px-3 text-[13px]',
   };
   const variants: Record<BtnVariant, string> = {
-    primary: 'bg-[#111827] text-white hover:bg-[#1F2937]',
+    primary: 'bg-primary text-white hover:bg-brand-navy-hover',
     secondary: 'bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]',
     ghost: 'bg-transparent text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]',
     danger: 'bg-[#DC2626] text-white hover:bg-[#B91C1C]',
-    link: 'bg-transparent text-[#2563EB] hover:underline h-auto px-0 text-[13px]',
+    link: 'bg-transparent text-brand-blue hover:underline h-auto px-0 text-[13px]',
   };
   return (
     <button className={cn(base, sizes[size], variants[variant], className)} {...props}>
@@ -115,7 +115,7 @@ export function Input({ label, hint, className = '', id, ...props }: InputProps)
       {label && <label htmlFor={inputId} className="block text-[13px] font-medium text-[#374151]">{label}</label>}
       <input
         id={inputId}
-        className={`w-full h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md placeholder-[#9CA3AF] outline-none focus:ring-1 focus:ring-[#111827] focus:border-[#111827] transition-colors ${className}`}
+        className={`w-full h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md placeholder-[#9CA3AF] outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors ${className}`}
         {...props}
       />
       {hint && <p className="text-[11px] text-[#9CA3AF]">{hint}</p>}
@@ -130,7 +130,7 @@ export function Select({ label, className = '', children, ...props }: { label?: 
     <div className="space-y-1">
       {label && <label className="block text-[13px] font-medium text-[#374151]">{label}</label>}
       <select
-        className={`w-full h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-[#111827] transition-colors ${className}`}
+        className={`w-full h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring transition-colors ${className}`}
         {...props}
       >
         {children}
@@ -146,7 +146,7 @@ export function Textarea({ label, hint, className = '', ...props }: { label?: st
     <div className="space-y-1">
       {label && <label className="block text-[13px] font-medium text-[#374151]">{label}</label>}
       <textarea
-        className={`w-full px-3 py-2 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md placeholder-[#9CA3AF] outline-none focus:ring-1 focus:ring-[#111827] transition-colors resize-none ${className}`}
+        className={`w-full px-3 py-2 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md placeholder-[#9CA3AF] outline-none focus:ring-1 focus:ring-ring transition-colors resize-none ${className}`}
         {...props}
       />
       {hint && <p className="text-[11px] text-[#9CA3AF]">{hint}</p>}
@@ -319,7 +319,7 @@ export function FilterTabs<T extends string>({ options, value, onChange }: { opt
           onClick={() => onChange(opt.value)}
           className={`px-3 text-[12px] font-medium h-full transition-colors ${
             value === opt.value
-              ? 'bg-[#111827] text-white'
+              ? 'bg-primary text-white'
               : 'bg-white text-[#6B7280] hover:bg-[#F3F4F6]'
           } border-r border-[#E5E7EB] last:border-r-0`}
         >

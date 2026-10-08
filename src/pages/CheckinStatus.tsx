@@ -55,7 +55,7 @@ export function CheckinStatus() {
               onClick={() => setSelectedRound(i)}
               className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-[12px] font-medium border transition-colors ${
                 selectedRound === i
-                  ? 'bg-[#111827] text-white border-[#111827]'
+                  ? 'bg-primary text-white border-primary'
                   : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:bg-[#F3F4F6]'
               }`}
             >

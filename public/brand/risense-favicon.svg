@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -13.5 137 137" role="img" aria-labelledby="title">
+  <title id="title">Risense favicon</title>
+  <defs><linearGradient id="ink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#121E2D"/><stop offset="1" stop-color="#0B1421"/></linearGradient></defs>
+  <path fill="url(#ink)" d="M8 1h69c20 0 35 18 35 43 0 17-7 29-20 36l24 28H82L39 59h32c7 0 11-6 11-14s-4-13-11-13H24C15 32 8 25 8 16V1Z"/>
+  <circle cx="20" cy="87" r="19" fill="#3268E8"/>
+</svg>
