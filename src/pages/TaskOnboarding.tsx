@@ -69,7 +69,7 @@ export function TaskOnboarding() {
           <div className="flex items-center gap-3">
             {step > 1
               ? <NavBack label="이전" onClick={() => setStep(s => s - 1)} />
-              : <NavBack label="프로젝트 만들기" onClick={() => navigate('/create-project')} />
+              : <NavBack fallback="/create-project" />
             }
             <div className="h-4 w-px bg-[#E5E7EB]" />
             <span className="text-[13px] font-semibold text-[#111827]">작업 설정</span>

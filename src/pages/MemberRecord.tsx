@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router';
 import { sampleTasks, sampleMembers } from '@/data/sampleData';
 import { StatusChip, ProgressBar, CheckDot, NavBack } from '@/components/ds';
 
@@ -15,14 +14,13 @@ const checkinHistory = [
 ];
 
 export function MemberRecord() {
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-white flex justify-center">
       <div className="w-full max-w-[390px] min-h-screen bg-white">
         {/* Header */}
         <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-10 flex items-center px-4">
-          <NavBack label="홈" onClick={() => navigate('/member-home')} />
+          <NavBack fallback="/member-home" />
           <span className="text-[13px] font-semibold text-[#111827] ml-2">내 참여 기록</span>
         </header>
 

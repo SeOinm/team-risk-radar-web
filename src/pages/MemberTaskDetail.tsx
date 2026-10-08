@@ -46,7 +46,7 @@ export function MemberTaskDetail() {
       <div className="w-full max-w-[390px] min-h-screen bg-white">
         {/* Header */}
         <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-10 flex items-center px-4 gap-2">
-          <NavBack label="홈" onClick={() => navigate('/member-home')} />
+          <NavBack fallback="/member-home" />
           <span className="text-[13px] font-semibold text-[#111827] truncate">{task.title}</span>
         </header>
 

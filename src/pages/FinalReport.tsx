@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router';
 import { Link as LinkIcon } from 'lucide-react';
 import { sampleMembers } from '@/data/sampleData';
 import { Badge, RoleBadgeDs, NavBack } from '@/components/ds';
@@ -41,7 +40,6 @@ const assigneeChanges: { taskName: string; from: string; to: string; date: strin
 const memberMap = Object.fromEntries(sampleMembers.map(m => [m.id, m]));
 
 export function FinalReport() {
-  const navigate = useNavigate();
   const checkinRate = Math.round((projectSummary.completedCheckins / projectSummary.totalCheckins) * 100);
 
   return (
@@ -49,7 +47,7 @@ export function FinalReport() {
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center justify-between px-6">
         <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <NavBack label="대시보드" onClick={() => navigate('/dashboard')} />
+            <NavBack fallback="/dashboard" />
             <div className="h-4 w-px bg-[#E5E7EB]" />
             <span className="text-[13px] font-semibold text-[#111827]">최종 리포트</span>
           </div>
