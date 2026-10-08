@@ -1,9 +1,10 @@
+import { BrandLogo } from '@/components/BrandLogo';
 import { useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { authApi, AuthApiError, type FieldErrors } from '@/api/auth';
 import { useAuth } from '@/auth/context';
 import { validateAuthInput } from '@/auth/validation';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Btn, Input } from '@/components/ds';
 
 
@@ -76,10 +77,10 @@ export function AuthScreens() {
           <div className="w-full max-w-[360px] space-y-5">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-10 h-10 bg-[#F3F4F6] rounded-md mb-3">
-                <Shield className="w-5 h-5 text-[#111827]" />
+                <BrandLogo symbolOnly />
               </div>
               <p className="text-[18px] font-semibold text-[#111827]">로그인</p>
-              <p className="text-[12px] text-[#9CA3AF]">팀플 리스크 레이더</p>
+              <img src="/brand/risense-wordmark.svg" alt="Risense" width={317} height={71} className="h-5 w-auto mx-auto mt-2" />
             </div>
             <form className="space-y-3" onSubmit={handleSubmit} noValidate>
               <Input disabled={busy} autoComplete="email" maxLength={255} aria-invalid={Boolean(fieldErrors.email)} label="이메일" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="이메일 주소" />
@@ -116,7 +117,7 @@ export function AuthScreens() {
           <div className="w-full max-w-[360px] space-y-5">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-10 h-10 bg-[#F3F4F6] rounded-md mb-3">
-                <Shield className="w-5 h-5 text-[#111827]" />
+                <BrandLogo symbolOnly />
               </div>
               <p className="text-[18px] font-semibold text-[#111827]">회원가입</p>
             </div>

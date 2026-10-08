@@ -1,6 +1,7 @@
+import { BrandLogo } from '@/components/BrandLogo';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Clock, CheckSquare, Square, ChevronDown, ChevronUp, Shield } from 'lucide-react';
+import { Clock, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { SizeBadgeDs, StatusChip, Btn } from '@/components/ds';
 
 import type { TaskStatus, TaskSize } from '@/types';
@@ -68,7 +69,7 @@ export function MemberCheckin() {
         {/* Header */}
         <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-10 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#111827]" />
+            <BrandLogo symbolOnly />
             <span className="text-[13px] font-semibold text-[#111827]">1분 체크인</span>
           </div>
           <div className="flex items-center gap-1 text-[12px] text-[#9CA3AF]">

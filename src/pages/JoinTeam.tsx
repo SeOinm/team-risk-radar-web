@@ -1,6 +1,7 @@
+import { BrandLogo } from '@/components/BrandLogo';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Shield, Clock, Calendar, Users } from 'lucide-react';
+import { Clock, Calendar, Users } from 'lucide-react';
 import { Btn } from '@/components/ds';
 
 type JoinState = 'view' | 'pending';
@@ -36,8 +37,7 @@ export function JoinTeam() {
       <div className="w-full max-w-[390px] min-h-screen px-4 py-8">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
-          <Shield className="w-4 h-4 text-[#111827]" />
-          <span className="text-[13px] font-semibold text-[#111827]">팀플 리스크 레이더</span>
+          <BrandLogo />
         </div>
 
         {/* Project info */}
