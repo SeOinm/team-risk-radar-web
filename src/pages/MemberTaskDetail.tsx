@@ -97,7 +97,7 @@ export function MemberTaskDetail() {
                   onChange={e => setNewSubTask(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addSubTask()}
                   placeholder="하위 작업 이름"
-                  className="flex-1 h-8 px-3 text-[12px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-[#111827]"
+                  className="flex-1 h-8 px-3 text-[12px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring"
                   autoFocus
                 />
                 <Btn variant="primary" size="sm" onClick={addSubTask}>추가</Btn>
@@ -157,7 +157,7 @@ export function MemberTaskDetail() {
                   value={artifactUrl}
                   onChange={e => setArtifactUrl(e.target.value)}
                   placeholder="링크 URL"
-                  className="flex-1 h-8 px-3 text-[12px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-[#111827]"
+                  className="flex-1 h-8 px-3 text-[12px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring"
                   autoFocus
                 />
                 <Btn variant="primary" size="sm" onClick={addArtifact}>등록</Btn>
@@ -174,7 +174,7 @@ export function MemberTaskDetail() {
                   <div key={i} className="flex items-center gap-2 px-3 py-2.5">
                     <Link className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
                     <a href={link} target="_blank" rel="noopener noreferrer"
-                      className="flex-1 text-[12px] text-[#2563EB] hover:underline truncate">{link}</a>
+                      className="flex-1 text-[12px] text-brand-blue hover:underline truncate">{link}</a>
                     <button onClick={() => setArtifactLinks(prev => prev.filter((_, j) => j !== i))}
                       className="text-[#D1D5DB] hover:text-[#DC2626] transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />

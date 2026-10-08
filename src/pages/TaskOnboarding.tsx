@@ -81,7 +81,7 @@ export function TaskOnboarding() {
       {/* Progress bar */}
       <div className="h-1 bg-[#F3F4F6]">
         <div
-          className="h-full bg-[#111827] transition-all duration-300"
+          className="h-full bg-primary transition-all duration-300"
           style={{ width: `${(step / 7) * 100}%` }}
         />
       </div>
@@ -158,7 +158,7 @@ function StepTemplate({ setTasks, selected, setSelected }: {
             onClick={() => { setSelected(i); setTasks(t.tasks); }}
             className={`p-3.5 rounded-md border text-left transition-colors ${
               selected === i
-                ? 'border-[#111827] bg-[#111827] text-white'
+                ? 'border-primary bg-primary text-white'
                 : 'border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]'
             }`}
           >
@@ -242,7 +242,7 @@ function StepSize({ tasks, setTasks }: { tasks: Task[]; setTasks: (t: Task[]) =>
                     onClick={() => updateSize(task.id, size)}
                     className={`px-2.5 h-7 rounded text-[11px] font-semibold border transition-colors ${
                       task.size === size
-                        ? 'bg-[#111827] text-white border-[#111827]'
+                        ? 'bg-primary text-white border-primary'
                         : 'border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'
                     }`}
                   >
@@ -286,7 +286,7 @@ function StepAssignee({ tasks, setTasks, warning }: {
               <select
                 value={task.assignee || ''}
                 onChange={e => updateAssignee(task.id, e.target.value)}
-                className="h-7 px-2 text-[12px] border border-[#E5E7EB] rounded-md bg-white outline-none focus:ring-1 focus:ring-[#111827] text-[#374151]"
+                className="h-7 px-2 text-[12px] border border-[#E5E7EB] rounded-md bg-white outline-none focus:ring-1 focus:ring-ring text-[#374151]"
               >
                 <option value="">미배정</option>
                 {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
@@ -318,7 +318,7 @@ function StepDeadline({ tasks, setTasks }: { tasks: Task[]; setTasks: (t: Task[]
                 type="date"
                 value={task.deadline || ''}
                 onChange={e => updateDeadline(task.id, e.target.value)}
-                className="h-7 px-2 text-[12px] border border-[#E5E7EB] rounded-md bg-white outline-none focus:ring-1 focus:ring-[#111827] text-[#374151]"
+                className="h-7 px-2 text-[12px] border border-[#E5E7EB] rounded-md bg-white outline-none focus:ring-1 focus:ring-ring text-[#374151]"
               />
             </div>
           ))}
@@ -362,7 +362,7 @@ function StepDependencies({ tasks, setTasks }: { tasks: Task[]; setTasks: (t: Ta
                         onClick={() => toggleDep(task.id, c.id)}
                         className={`px-2.5 h-6 rounded text-[11px] border transition-colors ${
                           active
-                            ? 'bg-[#111827] text-white border-[#111827]'
+                            ? 'bg-primary text-white border-primary'
                             : 'border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'
                         }`}
                       >

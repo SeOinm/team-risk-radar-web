@@ -122,7 +122,7 @@ export function FinalReport() {
                     <p className="text-[11px] text-[#9CA3AF]">{o.assignee} · {o.date}</p>
                   </div>
                   <a href={o.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[12px] text-[#2563EB] hover:underline">
+                    className="flex items-center gap-1 text-[12px] text-brand-blue hover:underline">
                     <LinkIcon className="w-3 h-3" /> 링크 보기
                   </a>
                 </div>

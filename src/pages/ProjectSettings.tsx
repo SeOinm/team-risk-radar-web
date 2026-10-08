@@ -77,7 +77,7 @@ export function ProjectSettings() {
                     key={n}
                     onClick={() => setCheckinFreq(n)}
                     className={`w-9 h-9 rounded-md border text-[13px] font-medium transition-colors ${
-                      checkinFreq === n ? 'bg-[#111827] text-white border-[#111827]' : 'border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#374151]'
+                      checkinFreq === n ? 'bg-primary text-white border-primary' : 'border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#374151]'
                     }`}
                   >
                     {n}
@@ -98,7 +98,7 @@ export function ProjectSettings() {
                     key={d}
                     onClick={() => toggleDay(d)}
                     className={`w-9 h-9 rounded-md border text-[12px] font-medium transition-colors ${
-                      checkinDays.includes(d) ? 'bg-[#111827] text-white border-[#111827]' : 'border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#374151]'
+                      checkinDays.includes(d) ? 'bg-primary text-white border-primary' : 'border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#374151]'
                     }`}
                   >
                     {d}
@@ -114,7 +114,7 @@ export function ProjectSettings() {
                 type="time"
                 value={checkinTime}
                 onChange={e => setCheckinTime(e.target.value)}
-                className="h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-[#111827]"
+                className="h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring"
               />
               <p className="text-[11px] text-[#9CA3AF] mt-1">마감 이후 제출 시 지각 체크인으로 기록됩니다</p>
             </div>

@@ -159,7 +159,7 @@ export function TaskDetail() {
                       </div>
                       {ch.note && <p className="text-[12px] text-[#6B7280]">{ch.note}</p>}
                       {ch.outputLink && (
-                        <a href={ch.outputLink} className="flex items-center gap-1 text-[12px] text-[#2563EB] hover:underline mt-1">
+                        <a href={ch.outputLink} className="flex items-center gap-1 text-[12px] text-brand-blue hover:underline mt-1">
                           <LinkIcon className="w-3 h-3" /> 산출물 링크
                         </a>
                       )}
@@ -274,7 +274,7 @@ export function TaskDetail() {
                     {Array.from({ length: task.artifactLinks }).map((_, i) => (
                       <div key={i} className="flex items-center gap-1.5">
                         <LinkIcon className="w-3 h-3 text-[#9CA3AF]" />
-                        <span className="text-[12px] text-[#2563EB] hover:underline cursor-pointer">산출물 링크 {i + 1}</span>
+                        <span className="text-[12px] text-brand-blue hover:underline cursor-pointer">산출물 링크 {i + 1}</span>
                       </div>
                     ))}
                   </div>
