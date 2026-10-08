@@ -1,5 +1,6 @@
 import { RequireAuth } from '@/auth/RequireAuth';
 import { Routes, Route } from 'react-router';
+import { ProjectDetail } from '@/pages/ProjectDetail';
 import { ProjectList } from '@/pages/ProjectList';
 import { Home } from '@/pages/Home';
 import { AuthScreens } from '@/pages/AuthScreens';
@@ -42,6 +43,9 @@ export default function App() {
 
       <Route element={<RequireAuth />}>
       <Route path="/projects" element={<ProjectList />} />
+      <Route path="/projects/:projectId" element={<ProjectDetail />} />
+      <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />
+      <Route path="/projects/:projectId/close" element={<ProjectClose />} />
 
       {/* 팀장 흐름 */}
       <Route path="/create-project" element={<CreateProject />} />

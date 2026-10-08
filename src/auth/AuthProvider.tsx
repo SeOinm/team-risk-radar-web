@@ -142,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [state.session, clearSession]);
 
+  const logout = useCallback(() => clearSession(), [clearSession]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -150,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: state.error,
         notice: state.notice,
         login,
-        logout: () => clearSession(),
+        logout,
         retry: restore,
       }}
     >

@@ -1,21 +1,65 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useRef, useState, type FormEvent } from 'react';
+import { ProjectLoader } from '@/components/ProjectLoader';
+import { projectsApi, DAY_LABELS, type CheckinDay, type ProjectResponse } from '@/api/projects';
+import { ApiError } from '@/api/client';
+import { useAuth } from '@/auth/context';
+import { useNavigate, useParams } from 'react-router';
 import { RefreshCw, Copy, AlertOctagon } from 'lucide-react';
 import { Btn, Input, NavBack } from '@/components/ds';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export function ProjectSettings() {
+  const { projectId } = useParams();
+  if (projectId) return <ProjectLoader key={projectId} id={projectId}>{(project, reload) => <SettingsForm key={`${project.id}:${project.updatedAt}`} project={project} reload={reload} />}</ProjectLoader>;
+  return <SettingsForm />;
+}
+
+function SettingsForm({ project, reload }: { project?: ProjectResponse; reload?: () => void }) {
   const navigate = useNavigate();
-  const [title, setTitle] = useState('HCI 기말 발표 과제');
-  const [className, setClassName] = useState('인간컴퓨터상호작용');
-  const [deadline, setDeadline] = useState('2024-06-13');
-  const [checkinFreq, setCheckinFreq] = useState(3);
-  const [checkinDays, setCheckinDays] = useState(['월', '수', '금']);
-  const [checkinTime, setCheckinTime] = useState('23:59');
+  const { logout } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [locked, setLocked] = useState(false);
+  const inFlight = useRef(false);
+  const manager = !project || project.myRole !== 'MEMBER';
+  const writable = manager && (!project || project.status === 'IN_PROGRESS') && !locked;
+  const detailPath = project ? `/projects/${project.id}` : '/dashboard';
+  const [title, setTitle] = useState(project?.title ?? 'HCI 기말 발표 과제');
+  const [className, setClassName] = useState(project ? project.className ?? '' : '인간컴퓨터상호작용');
+  const [deadline, setDeadline] = useState(project?.deadline ?? '2024-06-13');
+  const [checkinFreq, setCheckinFreq] = useState(project?.checkinFrequency ?? 3);
+  const [checkinDays, setCheckinDays] = useState<string[]>(project ? project.checkinDays.map(day => DAY_LABELS[day]) : ['월', '수', '금']);
+  const [checkinTime, setCheckinTime] = useState(project?.checkinTime.slice(0, 5) ?? '23:59');
   const [inviteLink] = useState(() => `${window.location.origin}/join?token=abc123xyz`);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const save = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (inFlight.current || !writable) return;
+    setSaved(false); setError(''); setFieldErrors({});
+    if (!title.trim()) { setError('프로젝트명을 입력해주세요.'); return; }
+    if (checkinDays.length !== checkinFreq) { setError('체크인 주기와 선택한 요일 수를 맞춰주세요.'); return; }
+    if (!project) { setSaved(true); return; }
+    inFlight.current = true; setBusy(true);
+    try {
+      await projectsApi.update(String(project.id), {
+        title: title.trim(), className: className.trim(), deadline,
+        checkinTime: `${checkinTime}:00`, checkinFrequency: checkinFreq,
+        checkinDays: (Object.keys(DAY_LABELS) as CheckinDay[]).filter(day => checkinDays.includes(DAY_LABELS[day])),
+      });
+      setSaved(true);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) { logout(); return; }
+        if ([403, 404, 409].includes(error.status)) setLocked(true);
+        setFieldErrors(error.fieldErrors);
+      }
+      setError(error instanceof Error ? error.message : '설정을 저장하지 못했습니다.');
+    } finally { inFlight.current = false; setBusy(false); }
+  };
 
   const toggleDay = (day: string) => {
     setCheckinDays(prev =>
@@ -35,30 +79,38 @@ export function ProjectSettings() {
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
         <div className="max-w-2xl mx-auto px-6 w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <NavBack fallback="/dashboard" />
+            <NavBack fallback={detailPath} />
             <div className="h-4 w-px bg-[#E5E7EB]" />
             <span className="text-[13px] font-semibold text-[#111827]">프로젝트 설정</span>
           </div>
           <Btn
             variant="primary"
             size="sm"
-            onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
+            type="submit" form="project-settings-form" disabled={busy || !writable}
           >
-            {saved ? '저장됨 ✓' : '설정 저장'}
+            {busy ? '저장 중…' : saved ? '저장됨 ✓' : '설정 저장'}
           </Btn>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-6 space-y-5">
+        {!project && <p className="text-sm text-muted-foreground">샘플 화면입니다. 실제 서버에 저장되지 않습니다.</p>}
+        {project && !manager && <p role="status">설정 변경은 팀장·공동 팀장만 가능합니다.</p>}
+        {project && project.status !== 'IN_PROGRESS' && <p role="status">완료·종료된 프로젝트는 설정을 변경할 수 없습니다.</p>}
+        {error && <div className="space-y-2"><p role="alert" className="text-destructive">{error}</p>{locked && <Btn onClick={reload}>최신 상태 불러오기</Btn>}</div>}
+        {Object.entries(fieldErrors).map(([key, message]) => <p key={key} role="alert" className="text-destructive">{message}</p>)}
+        {saved && <p role="status" className="text-brand-blue">{project ? '설정이 저장되었습니다.' : '샘플 화면에만 반영되었습니다.'}</p>}
+        <form id="project-settings-form" onSubmit={save} onChange={() => setSaved(false)}>
+        <fieldset disabled={busy || !writable} className="space-y-5 min-w-0">
         {/* Basic info */}
         <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
           <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
             <span className="text-[12px] font-semibold text-[#374151]">기본 정보</span>
           </div>
           <div className="px-5 py-4 space-y-3">
-            <Input label="프로젝트명" value={title} onChange={e => setTitle(e.target.value)} />
-            <Input label="수업명" value={className} onChange={e => setClassName(e.target.value)} />
-            <Input label="최종 마감일" type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+            <Input required maxLength={100} label="프로젝트명" value={title} onChange={e => setTitle(e.target.value)} />
+            <Input maxLength={100} label="수업명" value={className} onChange={e => setClassName(e.target.value)} />
+            <Input required label="최종 마감일" type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
           </div>
         </section>
 
@@ -72,10 +124,11 @@ export function ProjectSettings() {
             <div>
               <label className="block text-[13px] font-medium text-[#374151] mb-2">체크인 주기</label>
               <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4, 5].map(n => (
+                {[1, 2, 3, 4, 5, 6, 7].map(n => (
                   <button
                     key={n}
-                    onClick={() => setCheckinFreq(n)}
+                    type="button"
+                    onClick={() => { setCheckinFreq(n); setCheckinDays([]); setSaved(false); }}
                     className={`w-9 h-9 rounded-md border text-[13px] font-medium transition-colors ${
                       checkinFreq === n ? 'bg-primary text-white border-primary' : 'border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#374151]'
                     }`}
@@ -96,7 +149,8 @@ export function ProjectSettings() {
                 {DAYS.map(d => (
                   <button
                     key={d}
-                    onClick={() => toggleDay(d)}
+                    type="button"
+                    onClick={() => { toggleDay(d); setSaved(false); }}
                     className={`w-9 h-9 rounded-md border text-[12px] font-medium transition-colors ${
                       checkinDays.includes(d) ? 'bg-primary text-white border-primary' : 'border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#374151]'
                     }`}
@@ -109,9 +163,9 @@ export function ProjectSettings() {
 
             {/* Time */}
             <div>
-              <label className="block text-[13px] font-medium text-[#374151] mb-1.5">체크인 마감 시간</label>
+              <label htmlFor="settings-checkin-time" className="block text-[13px] font-medium text-[#374151] mb-1.5">체크인 마감 시간</label>
               <input
-                type="time"
+                id="settings-checkin-time" required type="time"
                 value={checkinTime}
                 onChange={e => setCheckinTime(e.target.value)}
                 className="h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md outline-none focus:ring-1 focus:ring-ring"
@@ -121,6 +175,9 @@ export function ProjectSettings() {
           </div>
         </section>
 
+        </fieldset>
+        </form>
+
         {/* Invite link */}
         <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
           <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
@@ -129,14 +186,14 @@ export function ProjectSettings() {
           <div className="px-5 py-4 space-y-3">
             <div className="flex items-center gap-2">
               <div className="flex-1 px-3 h-8 flex items-center border border-[#E5E7EB] rounded-md bg-[#F9FAFB]">
-                <span className="text-[12px] text-[#9CA3AF] font-mono truncate">{inviteLink}</span>
+                <span className="text-[12px] text-[#9CA3AF] font-mono truncate">{project ? '초대 링크 연결 대기' : inviteLink}</span>
               </div>
-              <Btn variant="secondary" size="sm" onClick={copyLink}>
+              <Btn variant="secondary" size="sm" disabled={Boolean(project)} onClick={copyLink}>
                 <Copy className="w-3.5 h-3.5" />
                 {copied ? '복사됨!' : '복사'}
               </Btn>
             </div>
-            <button className="flex items-center gap-1.5 text-[12px] text-[#6B7280] hover:text-[#111827] transition-colors">
+            <button disabled={Boolean(project)} className="disabled:opacity-50 flex items-center gap-1.5 text-[12px] text-[#6B7280] hover:text-[#111827] transition-colors">
               <RefreshCw className="w-3.5 h-3.5" />
               링크 재생성
             </button>
@@ -151,9 +208,9 @@ export function ProjectSettings() {
           <div className="flex items-center justify-between px-5 py-4">
             <div>
               <p className="text-[13px] font-medium text-[#111827]">팀원 관리</p>
-              <p className="text-[12px] text-[#9CA3AF]">가입 승인, 역할 변경, 팀원 내보내기</p>
+              <p className="text-[12px] text-[#9CA3AF]">가입 승인, 역할 변경, 팀원 내보내기{project ? ' · 연결 대기' : ''}</p>
             </div>
-            <Btn variant="secondary" size="sm" onClick={() => navigate('/members')}>
+            <Btn variant="secondary" size="sm" disabled={Boolean(project)} onClick={() => navigate('/members')}>
               팀원 관리 →
             </Btn>
           </div>
@@ -171,7 +228,8 @@ export function ProjectSettings() {
             <Btn
               variant="secondary"
               size="sm"
-              onClick={() => navigate('/close-project')}
+              disabled={busy || !manager || locked || project?.status === 'CLOSED'}
+              onClick={() => navigate(project ? `/projects/${project.id}/close` : '/close-project')}
               className="text-[#DC2626] border-[#FECACA] hover:bg-[#FEF2F2]"
             >
               <AlertOctagon className="w-3.5 h-3.5" />
