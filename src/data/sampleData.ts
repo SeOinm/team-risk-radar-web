@@ -1,4 +1,4 @@
-// Shared sample data for 팀플 리스크 레이더
+// Shared sample data for Risense
 
 import type { Role, RiskLevel, TeamMember, Task, Project } from '@/types';
 

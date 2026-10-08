@@ -1,7 +1,8 @@
+import { BrandLogo } from '@/components/BrandLogo';
 import { useAuth } from '@/auth/context';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Shield, ChevronRight } from 'lucide-react';
+import { Plus, ChevronRight } from 'lucide-react';
 import { projectList } from '@/data/sampleData';
 import { Btn, Badge, RiskScore, RoleBadgeDs, FilterTabs, Divider } from '@/components/ds';
 
@@ -31,8 +32,7 @@ export function ProjectList() {
       {/* Top nav */}
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center justify-between px-6">
         <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-[#111827]" />
-          <span className="text-[13px] font-semibold text-[#111827] tracking-tight">팀플 리스크 레이더</span>
+          <BrandLogo />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-[#6B7280]">{user?.nickname}님</span>

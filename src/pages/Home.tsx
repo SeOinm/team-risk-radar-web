@@ -1,5 +1,6 @@
+import { BrandLogo } from '@/components/BrandLogo';
 import { useNavigate } from 'react-router';
-import { Shield, BarChart3, Users, Zap, ChevronRight } from 'lucide-react';
+import { BarChart3, Users, Zap, ChevronRight } from 'lucide-react';
 import { Btn } from '@/components/ds';
 
 const NAV_LINKS = [
@@ -21,8 +22,7 @@ export function Home() {
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
         <div className="max-w-5xl mx-auto px-6 w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#111827]" />
-            <span className="text-[13px] font-semibold text-[#111827]">팀플 리스크 레이더</span>
+            <BrandLogo />
           </div>
           <div className="flex items-center gap-2">
             <Btn variant="ghost" size="sm" onClick={() => navigate('/auth')}>로그인</Btn>

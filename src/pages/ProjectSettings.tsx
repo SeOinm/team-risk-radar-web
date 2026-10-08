@@ -13,7 +13,7 @@ export function ProjectSettings() {
   const [checkinFreq, setCheckinFreq] = useState(3);
   const [checkinDays, setCheckinDays] = useState(['월', '수', '금']);
   const [checkinTime, setCheckinTime] = useState('23:59');
-  const [inviteLink] = useState('https://riskradar.kr/join/abc123xyz');
+  const [inviteLink] = useState(() => `${window.location.origin}/join?token=abc123xyz`);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
 

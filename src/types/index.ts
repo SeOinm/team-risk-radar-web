@@ -1,4 +1,4 @@
-// Shared domain types for 팀플 리스크 레이더
+// Shared domain types for Risense
 
 export type Role = '팀장' | '공동 팀장' | '팀원';
 export type RiskLevel = '안정' | '관찰' | '주의' | '위험' | '심각';

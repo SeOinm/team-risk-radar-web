@@ -6,7 +6,7 @@ import { Btn, RoleBadgeDs, Divider } from '@/components/ds';
 
 export function InviteTeam() {
   const navigate = useNavigate();
-  const [inviteLink] = useState('https://riskradar.kr/join/abc123xyz');
+  const [inviteLink] = useState(() => `${window.location.origin}/join?token=abc123xyz`);
   const [copied, setCopied] = useState(false);
   const [pendingList, setPendingList] = useState(pendingMembers);
 

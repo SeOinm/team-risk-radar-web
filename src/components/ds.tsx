@@ -1,5 +1,5 @@
 /**
- * Design System primitives for 팀플 리스크 레이더
+ * Design System primitives for Risense
  * Linear / Notion / GitHub minimal SaaS aesthetic
  */
 import { useNavigate } from 'react-router';
