@@ -3,14 +3,14 @@ import { sessionStore } from '../auth/session.ts';
 export { ApiError };
 
 export function createApiClient(baseUrl: string, getToken: () => string | undefined, fetcher: typeof fetch = fetch) {
-  return async (path: string, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<unknown> => {
-    const token = getToken();
-    if (!token) throw new ApiError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
+  return async (path: string, options: { method?: string; body?: unknown; signal?: AbortSignal; public?: boolean } = {}): Promise<unknown> => {
+    const token = options.public ? undefined : getToken();
+    if (!token && !options.public) throw new ApiError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
     let response: Response;
     try {
       response = await fetcher(`${baseUrl.replace(/\/+$/, '')}${path}`, {
         method: options.method ?? 'GET',
-        headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+        headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
         credentials: 'omit', cache: 'no-store',
         signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),

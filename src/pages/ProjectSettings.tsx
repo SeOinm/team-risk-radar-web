@@ -1,3 +1,4 @@
+import { InviteLinkPanel } from '@/components/InviteLinkPanel';
 import { useRef, useState, type FormEvent } from 'react';
 import { ProjectLoader } from '@/components/ProjectLoader';
 import { projectsApi, DAY_LABELS, type CheckinDay, type ProjectResponse } from '@/api/projects';
@@ -179,6 +180,7 @@ function SettingsForm({ project, reload }: { project?: ProjectResponse; reload?:
         </form>
 
         {/* Invite link */}
+        {project ? (project.myRole !== 'MEMBER' && <InviteLinkPanel project={project} reload={reload!} />) : (
         <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
           <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
             <span className="text-[12px] font-semibold text-[#374151]">초대 링크</span>
@@ -203,14 +205,16 @@ function SettingsForm({ project, reload }: { project?: ProjectResponse; reload?:
           </div>
         </section>
 
+        )}
+
         {/* Member management */}
         <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4">
             <div>
               <p className="text-[13px] font-medium text-[#111827]">팀원 관리</p>
-              <p className="text-[12px] text-[#9CA3AF]">가입 승인, 역할 변경, 팀원 내보내기{project ? ' · 연결 대기' : ''}</p>
+              <p className="text-[12px] text-[#9CA3AF]">가입 승인, 역할 변경, 팀원 내보내기</p>
             </div>
-            <Btn variant="secondary" size="sm" disabled={Boolean(project)} onClick={() => navigate('/members')}>
+            <Btn variant="secondary" size="sm" onClick={() => navigate(project ? `/projects/${project.id}/members` : '/members')}>
               팀원 관리 →
             </Btn>
           </div>
