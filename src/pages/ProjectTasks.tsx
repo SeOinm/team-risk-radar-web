@@ -92,8 +92,8 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
     <div className="min-h-screen bg-white">
       <header className="h-12 flex items-center border-b border-border">
         <NavBack fallback={`/projects/${project.id}`} />
-        <h1 className="text-sm">작업 보드</h1>
-        <span className="ml-auto mr-5 text-xs text-muted-foreground">
+        <h1 className="shrink-0 text-sm">작업 보드</h1>
+        <span className="ml-3 mr-5 min-w-0 truncate border-l border-border pl-3 text-xs text-muted-foreground" title={project.title}>
           {project.title}
         </span>
       </header>
@@ -143,7 +143,6 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
             </span>
           </label>
         </div>
-        {writable && (action.busy || !canReorder) && <p role="status" className="text-xs text-muted-foreground">{action.busy ? '변경 사항을 저장하고 있습니다…' : '순서 변경은 전체 · 기본 순서에서 취소 포함을 끄고 사용할 수 있습니다.'}</p>}
         {project.status !== "IN_PROGRESS" && (
           <p>완료·종료된 프로젝트는 작업을 변경할 수 없습니다.</p>
         )}
@@ -151,7 +150,6 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
         {action.locked && (
           <Btn onClick={() => window.location.reload()}>최신 상태 불러오기</Btn>
         )}
-        {action.notice && <p role="status">{action.notice}</p>}
         {form && (
           <section className="border border-border rounded p-5 space-y-3">
             <h2>{form === "create" ? "새 작업" : "작업 템플릿"}</h2>
