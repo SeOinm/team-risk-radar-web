@@ -1,3 +1,5 @@
+import { ProjectTasks } from '@/pages/ProjectTasks';
+import { ProjectTaskDetail } from '@/pages/ProjectTaskDetail';
 import { ProjectTeam } from '@/pages/ProjectTeam';
 import { RequireAuth } from '@/auth/RequireAuth';
 import { Routes, Route } from 'react-router';
@@ -46,6 +48,8 @@ export default function App() {
       <Route path="/projects" element={<ProjectList />} />
       <Route path="/projects/:projectId" element={<ProjectDetail />} />
       <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />
+      <Route path="/projects/:projectId/tasks" element={<ProjectTasks />} />
+      <Route path="/projects/:projectId/tasks/:taskId" element={<ProjectTaskDetail />} />
       <Route path="/projects/:projectId/members" element={<ProjectTeam />} />
       <Route path="/projects/:projectId/invite" element={<ProjectTeam inviteOnly />} />
       <Route path="/projects/:projectId/close" element={<ProjectClose />} />

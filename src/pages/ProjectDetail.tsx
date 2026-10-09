@@ -29,7 +29,7 @@ export function ProjectDetail() {
               </div>
               {project.className && <p className="text-muted-foreground">{project.className}</p>}
             </div>
-            <div className="px-5 pt-4"><Btn onClick={() => navigate(`/projects/${project.id}/members`)}>팀원 {project.myRole === 'MEMBER' ? '목록' : '관리'}</Btn>{project.myRole !== 'MEMBER' && project.status === 'IN_PROGRESS' && <Btn className="ml-2" onClick={() => navigate(`/projects/${project.id}/invite`)}>팀원 초대</Btn>}</div>
+            <div className="px-5 pt-4"><Btn className="mr-2" onClick={() => navigate(`/projects/${project.id}/tasks`)}>작업 보드</Btn><Btn onClick={() => navigate(`/projects/${project.id}/members`)}>팀원 {project.myRole === 'MEMBER' ? '목록' : '관리'}</Btn>{project.myRole !== 'MEMBER' && project.status === 'IN_PROGRESS' && <Btn className="ml-2" onClick={() => navigate(`/projects/${project.id}/invite`)}>팀원 초대</Btn>}</div>
             <dl className="p-5 grid grid-cols-[auto_1fr] gap-x-6 gap-y-4 text-sm">
               <dt className="text-muted-foreground">최종 마감일</dt><dd>{project.deadline}</dd>
               <dt className="text-muted-foreground">체크인 주기</dt><dd>주 {project.checkinFrequency}회</dd>

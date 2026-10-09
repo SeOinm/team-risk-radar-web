@@ -107,7 +107,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
 }
 
-export function Input({ label, hint, className = '', id, ...props }: InputProps) {
+export function Input({ label, hint, className = '', id, onClick, ...props }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   return (
@@ -117,6 +117,16 @@ export function Input({ label, hint, className = '', id, ...props }: InputProps)
         id={inputId}
         className={`w-full h-8 px-3 text-[13px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-md placeholder-[#9CA3AF] outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors ${className}`}
         {...props}
+        onClick={(event) => {
+          onClick?.(event);
+          const input = event.currentTarget;
+          if (event.defaultPrevented || input.type !== 'date' || input.readOnly || input.matches(':disabled')) return;
+          try {
+            input.showPicker?.();
+          } catch {
+            // Keep native date entry available where opening the picker is restricted.
+          }
+        }}
       />
       {hint && <p className="text-[11px] text-[#9CA3AF]">{hint}</p>}
     </div>

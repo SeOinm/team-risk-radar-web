@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test:auth": "node --test tests/auth.test.mjs",
     "test:projects": "node --test tests/projects.test.mjs",
-    "test:team": "node --test tests/team.test.mjs"
+    "test:team": "node --test tests/team.test.mjs",
+    "test:tasks": "node --test tests/tasks.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.13",
