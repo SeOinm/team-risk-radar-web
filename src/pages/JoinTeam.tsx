@@ -1,12 +1,20 @@
+import { InviteJoin } from '@/pages/InviteJoin';
 import { BrandLogo } from '@/components/BrandLogo';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Clock, Calendar, Users } from 'lucide-react';
 import { Btn } from '@/components/ds';
 
 type JoinState = 'view' | 'pending';
 
 export function JoinTeam() {
+  const [params] = useSearchParams();
+  const token = params.get('token');
+  if (token) return <InviteJoin key={token} token={token} />;
+  return <JoinDemo />;
+}
+
+function JoinDemo() {
   const navigate = useNavigate();
   const [state, setState] = useState<JoinState>('view');
 
@@ -35,6 +43,7 @@ export function JoinTeam() {
   return (
     <div className="min-h-screen bg-white flex justify-center">
       <div className="w-full max-w-[390px] min-h-screen px-4 py-8">
+        <p className="text-xs text-muted-foreground mb-4">초대 화면 샘플입니다. 실제 참여는 초대 링크로 접속해주세요.</p>
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
           <BrandLogo />

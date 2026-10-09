@@ -1,3 +1,4 @@
+import { ProjectTeam } from '@/pages/ProjectTeam';
 import { RequireAuth } from '@/auth/RequireAuth';
 import { Routes, Route } from 'react-router';
 import { ProjectDetail } from '@/pages/ProjectDetail';
@@ -45,6 +46,8 @@ export default function App() {
       <Route path="/projects" element={<ProjectList />} />
       <Route path="/projects/:projectId" element={<ProjectDetail />} />
       <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />
+      <Route path="/projects/:projectId/members" element={<ProjectTeam />} />
+      <Route path="/projects/:projectId/invite" element={<ProjectTeam inviteOnly />} />
       <Route path="/projects/:projectId/close" element={<ProjectClose />} />
 
       {/* 팀장 흐름 */}
