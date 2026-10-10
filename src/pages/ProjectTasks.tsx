@@ -1,16 +1,15 @@
 import { moveTask } from "@/lib/taskOrder";
 import { ApiError } from "@/api/client";
-import { Plus, ChevronDown, SlidersHorizontal, GripVertical } from "lucide-react";
+import { Plus, ChevronDown, ChevronLeft, SlidersHorizontal, GripVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
   Btn,
   Input,
-  NavBack,
   RiskScore,
   SizeBadgeDs,
   ProgressBar,
@@ -106,14 +105,19 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   };
   return (
     <div className="min-h-screen bg-white">
-      <header className="h-12 flex items-center border-b border-border">
-        <NavBack fallback={`/projects/${project.id}`} />
-        <h1 className="shrink-0 text-sm">작업 보드</h1>
-        <span className="ml-3 mr-5 min-w-0 truncate border-l border-border pl-3 text-xs text-muted-foreground" title={project.title}>
-          {project.title}
-        </span>
+      <header className="h-12 flex items-center border-b border-border px-4">
+        <Link
+          to={`/projects/${project.id}`}
+          aria-label={`${project.title} 프로젝트 상세로 이동`}
+          title={project.title}
+          className="inline-flex min-w-0 max-w-full items-center gap-2 rounded text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronLeft aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <span className="truncate">{project.title}</span>
+        </Link>
       </header>
       <main className="max-w-6xl mx-auto p-6 space-y-4">
+        <h1 className="text-lg font-semibold">작업 보드</h1>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="inline-flex items-center rounded-md bg-muted p-1" aria-label="작업 필터">

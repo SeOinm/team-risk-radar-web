@@ -37,14 +37,6 @@ export function InviteJoin({ token }: { token: string }) {
                   링크 만료:{" "}
                   {new Date(q.data.expiresAt).toLocaleString("ko-KR")}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  마감일·체크인 일정·팀원 정보는 가입 승인 후 확인할 수
-                  있습니다.
-                </p>
-              </section>
-              <section className="border border-[#BFDBFE] bg-[#EFF6FF] rounded-md p-4 text-sm">
-                로그인 → 가입 요청 → 팀장·공동 팀장 승인 후 프로젝트에 참여할 수
-                있습니다.
               </section>
               {status === "checking" ? (
                 <p role="status">로그인 확인 중…</p>
@@ -85,9 +77,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
         ? "가입이 승인되었습니다."
         : state === "REJECTED"
           ? "가입 요청이 거절되었습니다. 다시 요청할 수 있습니다."
-          : state === "REMOVED"
-            ? "프로젝트에서 내보내기 처리되었습니다. 다시 가입을 요청할 수 있으며, 팀장 승인이 필요합니다."
-            : "";
+          : "";
   return (
     <section className="space-y-3">
       {q.loading ? (
