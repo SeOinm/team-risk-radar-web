@@ -86,7 +86,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
         : state === "REJECTED"
           ? "가입 요청이 거절되었습니다. 다시 요청할 수 있습니다."
           : state === "REMOVED"
-            ? "프로젝트에서 내보내기 처리되어 다시 가입할 수 없습니다."
+            ? "프로젝트에서 내보내기 처리되었습니다. 다시 가입을 요청할 수 있으며, 팀장 승인이 필요합니다."
             : "";
   return (
     <section className="space-y-3">
@@ -112,21 +112,19 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
           ) : state === "PENDING" ? (
             <Btn onClick={q.retry}>승인 상태 새로고침</Btn>
           ) : (
-            state !== "REMOVED" && (
-              <Btn
-                variant="primary"
-                disabled={action.busy || action.locked}
-                onClick={() =>
-                  void action.run(() => teamApi.join(token), q.retry)
-                }
-              >
-                {action.busy
-                  ? "요청 중…"
-                  : state === "REJECTED"
-                    ? "다시 가입 요청"
-                    : "가입 요청하기"}
-              </Btn>
-            )
+            <Btn
+              variant="primary"
+              disabled={action.busy || action.locked}
+              onClick={() =>
+                void action.run(() => teamApi.join(token), q.retry)
+              }
+            >
+              {action.busy
+                ? "요청 중…"
+                : state === "REJECTED" || state === "REMOVED"
+                  ? "다시 가입 요청"
+                  : "가입 요청하기"}
+            </Btn>
           )}
         </>
       )}

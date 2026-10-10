@@ -1,4 +1,8 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { GripVertical } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ApiError } from "@/api/client";
+import { TaskArtifacts, TaskRelations } from "@/components/TaskRelated";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
@@ -179,14 +183,9 @@ function Detail({
                   </Section>
                   <Section title="진행률 분석">
                     <p>
-                      {TASK_STATUS[t.status]} · 서버 진행률 {t.progress}%
+                      {TASK_STATUS[t.status]} · 진행률 {t.progress}%
                     </p>
                     <ProgressBar value={t.progress} />
-                    <p className="text-xs text-muted-foreground">
-                      진행률 비교 분석·체크인 기록은 연결 대기입니다. 하위
-                      작업을 완료해도 부모 작업의 진행률·상태는 직접 변경되지
-                      않습니다.
-                    </p>
                   </Section>
                   <Children
                     project={current}
@@ -194,19 +193,23 @@ function Detail({
                     members={q.data.members}
                     writable={!!writable}
                     manager={manager}
+                    onChanged={(task) =>
+                      q.updateData((data) => (data ? { ...data, task } : data))
+                    }
                   />
                   <Section title="체크인 기록">
                     <p>체크인 API 연결 대기</p>
                   </Section>
-                  <Section title="산출물 링크">
-                    <p>조회 응답 명세 확인 후 연결 예정입니다.</p>
-                    <Btn disabled>산출물 링크 추가 · 연결 대기</Btn>
-                  </Section>
+                  <TaskArtifacts
+                    project={current}
+                    task={t}
+                    members={q.data.members}
+                    writable={!!writable}
+                  />
                 </div>
                 <aside className="space-y-4">
                   <Section title="작업 정보">
                     <p>마감일: {t.dueDate ?? "없음"}</p>
-                    
                   </Section>
                   <Assignees
                     project={current}
@@ -216,13 +219,11 @@ function Detail({
                     refresh={refresh}
                   />
                   <Histories project={current} task={t} />
-                  <Section title="선행 작업">
-                    <p>조회 응답 명세 확인 후 연결 예정입니다.</p>
-                    <Btn disabled>선행 작업 설정 · 연결 대기</Btn>
-                  </Section>
-                  <Section title="후속 작업">
-                    <p>선행 작업 조회 연결 후 표시됩니다.</p>
-                  </Section>
+                  <TaskRelations
+                    project={current}
+                    task={t}
+                    writable={!!writable && manager}
+                  />
                 </aside>
               </div>
               <Btn onClick={() => navigate(`/projects/${project.id}/tasks`)}>
@@ -343,12 +344,14 @@ function Children({
   members,
   writable,
   manager,
+  onChanged,
 }: {
   project: ProjectResponse;
   task: Task;
   members: Member[];
   writable: boolean;
   manager: boolean;
+  onChanged: (task: Task) => void;
 }) {
   const { user } = useAuth();
   const self = members.find((m) => m.userId === user?.id);
@@ -363,7 +366,115 @@ function Children({
   const refresh = () => {
     setEditing(null);
     setRemove(null);
-    q.retry();
+  };
+  const run = (mutation: () => Promise<unknown>, afterSave: () => void) =>
+    action.run(async () => {
+      await mutation();
+      const [children, updatedTask] = await Promise.all([
+        tasksApi.children(project.id, task.id),
+        tasksApi.detail(project.id, String(task.id)),
+      ]);
+      q.updateData(() => children);
+      onChanged(updatedTask);
+    }, afterSave);
+  const listRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef<{
+    source: number;
+    target: number | null;
+    placement: "before" | "after";
+  } | null>(null);
+  const [drag, setDrag] = useState<{
+    source: number;
+    title: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [drop, setDrop] = useState<{
+    id: number;
+    placement: "before" | "after";
+  } | null>(null);
+  const canMove =
+    manager &&
+    writable &&
+    !action.busy &&
+    !action.locked &&
+    !q.loading &&
+    !q.error &&
+    !editing &&
+    !remove;
+  const resetDrag = () => {
+    dragging.current = null;
+    setDrag(null);
+    setDrop(null);
+  };
+  const reorder = (
+    source: number,
+    target: number,
+    placement: "before" | "after",
+  ) => {
+    if (!canMove || source === target) return;
+    const snapshot = q.data ?? [];
+    const preview = [...snapshot].sort((a,b) => a.sortOrder-b.sortOrder || a.id-b.id);
+    const from = preview.findIndex(c => c.id === source);
+    if (from < 0 || !preview.some(c => c.id === target)) return;
+    const [moved] = preview.splice(from, 1);
+    preview.splice(preview.findIndex(c => c.id === target) + (placement === "after" ? 1 : 0), 0, moved);
+    void action.run(
+      async () => {
+        q.updateData(() => preview.map((c, sortOrder) => ({...c, sortOrder})));
+        let saveError: unknown;
+        try {
+          const latest = await tasksApi.children(project.id, task.id);
+          const ordered = [...latest].sort(
+            (a, b) => a.sortOrder - b.sortOrder || a.id - b.id,
+          );
+          const signature = (items: SubTask[]) =>
+            [...items]
+              .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+              .map((c) => `${c.id}:${c.sortOrder}`)
+              .join(",");
+          if (signature(latest) !== signature(snapshot))
+            throw new ApiError(
+              409,
+              "ORDER_CHANGED",
+              "하위 작업 목록이 변경되었습니다. 최신 목록에서 다시 이동해주세요.",
+            );
+          const from = ordered.findIndex((c) => c.id === source);
+          if (from < 0 || !ordered.some((c) => c.id === target)) return;
+          const [moved] = ordered.splice(from, 1);
+          ordered.splice(
+            ordered.findIndex((c) => c.id === target) +
+              (placement === "after" ? 1 : 0),
+            0,
+            moved,
+          );
+          for (const [sortOrder, c] of ordered.entries()) {
+            if (c.sortOrder === sortOrder) continue;
+            await tasksApi.updateChild(project.id, task.id, c.id, {
+              title: c.title,
+              assigneeMemberId: c.assigneeMemberId,
+              sortOrder,
+            });
+          }
+        } catch (error) {
+          saveError = error;
+        }
+        {
+          // Preserve the screen and show actual persisted order even after a partial save.
+          try {
+            const latest = await tasksApi.children(project.id, task.id);
+            q.updateData(() => latest);
+          } catch (error) {
+            q.updateData(() => snapshot);
+            if (error instanceof ApiError && error.status === 401) throw error;
+            throw new ApiError(409, "ORDER_UNCONFIRMED", "저장된 순서를 확인하지 못했습니다. 이전 화면으로 복원했습니다. 최신 상태를 다시 불러와주세요.");
+          }
+        }
+
+        if (saveError) throw saveError;
+      },
+      () => {},
+    );
   };
   return (
     <Section title="하위 작업">
@@ -377,60 +488,159 @@ function Children({
       ) : (
         <>
           {!q.data?.length && <p>하위 작업이 없습니다.</p>}
-          {q.data?.map((c) => (
-            <div
-              key={c.id}
-              className="border-b border-border py-2 flex items-center gap-2 flex-wrap"
-            >
-              <input
-                aria-label={`${c.title} 완료`}
-                type="checkbox"
-                checked={c.completed}
-                disabled={
-                  !writable ||
-                  action.busy ||
-                  action.locked ||
-                  (!manager && c.assigneeMemberId !== self?.id)
+          <div ref={listRef}>
+            {q.data?.map((c) => (
+              <div
+                key={c.id}
+                data-child-id={c.id}
+                data-drop-placement={
+                  drop?.id === c.id ? drop.placement : undefined
                 }
-                onChange={(e) =>
-                  void action.run(
-                    () =>
-                      tasksApi.completion(
-                        project.id,
-                        task.id,
-                        c.id,
-                        e.target.checked,
-                      ),
-                    refresh,
-                  )
+                style={
+                  drop?.id === c.id
+                    ? {
+                        boxShadow: `inset 0 ${drop.placement === "before" ? "3px" : "-3px"} 0 var(--brand-blue)`,
+                      }
+                    : undefined
                 }
-              />
-              <span className={`flex-1 ${c.completed ? "line-through" : ""}`}>
-                {c.title}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {c.assigneeNickname ?? "미배정"}
-              </span>
-              {manager && (
-                <>
-                  <Btn
-                    size="sm"
-                    disabled={!writable || action.busy || action.locked}
-                    onClick={() => setEditing(c)}
+                className={`border-b border-border py-2 flex items-center gap-2 flex-wrap ${drag?.source === c.id ? "opacity-40" : ""}`}
+              >
+                {manager && (
+                  <button
+                    type="button"
+                    aria-label={`${c.title} 순서 이동`}
+                    disabled={!canMove}
+                    className="touch-none cursor-grab active:cursor-grabbing disabled:cursor-default disabled:opacity-25 p-1 text-muted-foreground rounded focus-visible:ring-2 focus-visible:ring-ring"
+                    onPointerDown={(e) => {
+                      if (!canMove || e.button !== 0) return;
+                      e.preventDefault();
+                      e.currentTarget.focus();
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      dragging.current = {
+                        source: c.id,
+                        target: null,
+                        placement: "before",
+                      };
+                      setDrag({
+                        source: c.id,
+                        title: c.title,
+                        x: e.clientX,
+                        y: e.clientY,
+                      });
+                    }}
+                    onPointerMove={(e) => {
+                      const move = dragging.current;
+                      if (!move) return;
+                      setDrag({
+                        source: c.id,
+                        title: c.title,
+                        x: e.clientX,
+                        y: e.clientY,
+                      });
+                      const row = document
+                        .elementFromPoint(e.clientX, e.clientY)
+                        ?.closest<HTMLElement>("[data-child-id]");
+                      const id = Number(row?.dataset.childId);
+                      if (
+                        !row ||
+                        !listRef.current?.contains(row) ||
+                        id === move.source
+                      ) {
+                        move.target = null;
+                        setDrop(null);
+                        return;
+                      }
+                      const rect = row.getBoundingClientRect();
+                      const placement =
+                        e.clientY < rect.top + rect.height / 2
+                          ? "before"
+                          : "after";
+                      move.target = id;
+                      move.placement = placement;
+                      setDrop({ id, placement });
+                    }}
+                    onPointerUp={(e) => {
+                      const move = dragging.current;
+                      resetDrag();
+                      if (e.currentTarget.hasPointerCapture(e.pointerId))
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      if (move?.target != null)
+                        reorder(move.source, move.target, move.placement);
+                    }}
+                    onPointerCancel={resetDrag}
+                    onLostPointerCapture={resetDrag}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        resetDrag();
+                        return;
+                      }
+                      if (!canMove || !["ArrowUp", "ArrowDown"].includes(e.key))
+                        return;
+                      e.preventDefault();
+                      const items = q.data ?? [];
+                      const i = items.findIndex((r) => r.id === c.id);
+                      const target = items[i + (e.key === "ArrowUp" ? -1 : 1)];
+                      if (target)
+                        reorder(
+                          c.id,
+                          target.id,
+                          e.key === "ArrowUp" ? "before" : "after",
+                        );
+                    }}
                   >
-                    수정
-                  </Btn>
-                  <Btn
-                    size="sm"
-                    disabled={!writable || action.busy || action.locked}
-                    onClick={() => setRemove(c)}
-                  >
-                    삭제
-                  </Btn>
-                </>
-              )}
-            </div>
-          ))}
+                    <GripVertical aria-hidden="true" className="w-4 h-4" />
+                  </button>
+                )}
+                <input
+                  aria-label={`${c.title} 완료`}
+                  type="checkbox"
+                  checked={c.completed}
+                  disabled={
+                    !writable ||
+                    action.busy ||
+                    action.locked ||
+                    (!manager && c.assigneeMemberId !== self?.id)
+                  }
+                  onChange={(e) =>
+                    void run(
+                      () =>
+                        tasksApi.completion(
+                          project.id,
+                          task.id,
+                          c.id,
+                          e.target.checked,
+                        ),
+                      refresh,
+                    )
+                  }
+                />
+                <span className={`flex-1 ${c.completed ? "line-through" : ""}`}>
+                  {c.title}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {c.assigneeNickname ?? "미배정"}
+                </span>
+                {manager && (
+                  <>
+                    <Btn
+                      size="sm"
+                      disabled={!writable || action.busy || action.locked}
+                      onClick={() => setEditing(c)}
+                    >
+                      수정
+                    </Btn>
+                    <Btn
+                      size="sm"
+                      disabled={!writable || action.busy || action.locked}
+                      onClick={() => setRemove(c)}
+                    >
+                      삭제
+                    </Btn>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </>
       )}
       {manager && (
@@ -451,7 +661,7 @@ function Children({
           busy={action.busy || action.locked || !writable}
           onCancel={() => setEditing(null)}
           onSave={(input) =>
-            void action.run(
+            void run(
               () =>
                 editing === "new"
                   ? tasksApi.addChild(project.id, task.id, input)
@@ -476,7 +686,7 @@ function Children({
             variant="danger"
             disabled={action.busy || action.locked || !writable}
             onClick={() =>
-              void action.run(
+              void run(
                 () => tasksApi.deleteChild(project.id, task.id, remove.id),
                 refresh,
               )
@@ -486,11 +696,27 @@ function Children({
           </Btn>
         </div>
       )}
+      {drag &&
+        createPortal(
+          <div
+            aria-hidden="true"
+            data-child-drag-preview
+            className="fixed z-50 pointer-events-none flex items-center gap-3 rounded-md border border-brand-blue bg-white px-4 py-3 text-sm shadow-lg opacity-75"
+            style={{
+              left: drag.x + 16,
+              top: drag.y + 12,
+              maxWidth: "min(420px,70vw)",
+            }}
+          >
+            <GripVertical className="w-4 h-4 shrink-0" />
+            <span className="truncate">{drag.title}</span>
+          </div>,
+          document.body,
+        )}
       {action.error && <p role="alert">{action.error}</p>}
       {action.locked && (
         <Btn onClick={() => window.location.reload()}>최신 상태 불러오기</Btn>
       )}
-      {action.notice && <p role="status">{action.notice}</p>}
     </Section>
   );
 }
@@ -511,7 +737,6 @@ function SubTaskForm({
   const [member, setMember] = useState(
     initial?.assigneeMemberId?.toString() ?? "",
   );
-  const [order, setOrder] = useState(initial?.sortOrder?.toString() ?? "");
   const [error, setError] = useState("");
   return (
     <form
@@ -524,7 +749,7 @@ function SubTaskForm({
         onSave({
           title: title.trim(),
           assigneeMemberId: member ? Number(member) : null,
-          sortOrder: order ? Number(order) : null,
+          sortOrder: null,
         });
       }}
       className="border border-border p-3 rounded space-y-3"
@@ -553,14 +778,6 @@ function SubTaskForm({
             ))}
           </select>
         </label>
-        <Input
-          label="하위 작업 순서 (선택)"
-          type="number"
-          min={0}
-          step={1}
-          value={order}
-          onChange={(e) => setOrder(e.target.value)}
-        />
         {error && <p role="alert">{error}</p>}
         <Btn type="button" onClick={onCancel}>
           돌아가기
