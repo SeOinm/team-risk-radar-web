@@ -23,6 +23,24 @@ export interface Task extends TaskInput {
   assignees: { memberId: number; nickname: string; assignedAt: string }[];
   updatedAt: string;
 }
+export interface Prerequisite {
+  taskId: number;
+  title: string;
+  status: keyof typeof TASK_STATUS;
+}
+export interface Artifact {
+  id: number;
+  taskId: number;
+  title: string;
+  url: string;
+  createdByMemberId: number;
+  createdByNickname: string;
+  createdAt: string;
+}
+export interface ArtifactInput {
+  title: string;
+  url: string;
+}
 export interface SubTask {
   id: number;
   taskId: number;
@@ -168,6 +186,73 @@ export function createTasksApi(request = apiRequest) {
         }),
         task,
       );
+    },
+    async prerequisites(p: number, t: number, signal?: AbortSignal) {
+      return array(
+        await request(path(p, t) + "/prerequisites", { signal }),
+        (v) => {
+          if (
+            !object(v) ||
+            !Number.isSafeInteger(v.taskId) ||
+            typeof v.title !== "string" ||
+            typeof v.status !== "string" ||
+            !Object.hasOwn(TASK_STATUS, v.status)
+          )
+            throw invalid();
+          return v as unknown as Prerequisite;
+        },
+      );
+    },
+    async setPrerequisites(
+      p: number,
+      t: number,
+      prerequisiteTaskIds: number[],
+    ) {
+      await request(path(p, t) + "/prerequisites", {
+        method: "PUT",
+        body: { prerequisiteTaskIds },
+      });
+    },
+    async artifacts(p: number, t: number, signal?: AbortSignal) {
+      return array(
+        await request(path(p, t) + "/artifacts", { signal }),
+        (v) => {
+          if (
+            !object(v) ||
+            !Number.isSafeInteger(v.id) ||
+            !Number.isSafeInteger(v.taskId) ||
+            typeof v.title !== "string" ||
+            typeof v.url !== "string" ||
+            !Number.isSafeInteger(v.createdByMemberId) ||
+            typeof v.createdByNickname !== "string" ||
+            typeof v.createdAt !== "string"
+          )
+            throw invalid();
+          return v as unknown as Artifact;
+        },
+      );
+    },
+    async addArtifact(p: number, t: number, input: ArtifactInput) {
+      await request(path(p, t) + "/artifacts", {
+        method: "POST",
+        body: { title: input.title, url: input.url },
+      });
+    },
+    async updateArtifact(
+      p: number,
+      t: number,
+      artifactId: number,
+      input: ArtifactInput,
+    ) {
+      await request(path(p, t) + `/artifacts/${id(artifactId)}`, {
+        method: "PUT",
+        body: { title: input.title, url: input.url },
+      });
+    },
+    async deleteArtifact(p: number, t: number, artifactId: number) {
+      await request(path(p, t) + `/artifacts/${id(artifactId)}`, {
+        method: "DELETE",
+      });
     },
     async children(p: number, t: number, signal?: AbortSignal) {
       return array(await request(path(p, t) + "/sub-tasks", { signal }), child);

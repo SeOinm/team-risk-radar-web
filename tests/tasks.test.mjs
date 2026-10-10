@@ -128,14 +128,81 @@ test("authorization, closed project and invalid success stay errors without auto
   );
 });
 
-test('drag order moves active tasks in both directions without mutating input or cancelled tasks', async () => {
-  const {moveTask} = await import('../src/lib/taskOrder.ts');
-  const items = [task, {...task,id:12,sortOrder:1}, {...task,id:13,sortOrder:2}, {...task,id:14,sortOrder:3,status:'CANCELLED'}];
-  assert.deepEqual(moveTask(items,13,11).map(t=>t.id),[13,11,12]);
-  assert.deepEqual(moveTask(items,11,13).map(t=>t.id),[12,13,11]);
-  assert.deepEqual(moveTask(items,11,13,"before").map(t=>t.id),[12,11,13]);
-  assert.deepEqual(moveTask(items,13,11,"after").map(t=>t.id),[11,13,12]);
-  assert.deepEqual(moveTask(items,14,11),[]);
-  assert.deepEqual(moveTask(items,11,11),[]);
-  assert.deepEqual(items.map(t=>t.id),[11,12,13,14]);
+test("drag order moves active tasks in both directions without mutating input or cancelled tasks", async () => {
+  const { moveTask } = await import("../src/lib/taskOrder.ts");
+  const items = [
+    task,
+    { ...task, id: 12, sortOrder: 1 },
+    { ...task, id: 13, sortOrder: 2 },
+    { ...task, id: 14, sortOrder: 3, status: "CANCELLED" },
+  ];
+  assert.deepEqual(
+    moveTask(items, 13, 11).map((t) => t.id),
+    [13, 11, 12],
+  );
+  assert.deepEqual(
+    moveTask(items, 11, 13).map((t) => t.id),
+    [12, 13, 11],
+  );
+  assert.deepEqual(
+    moveTask(items, 11, 13, "before").map((t) => t.id),
+    [12, 11, 13],
+  );
+  assert.deepEqual(
+    moveTask(items, 13, 11, "after").map((t) => t.id),
+    [11, 13, 12],
+  );
+  assert.deepEqual(moveTask(items, 14, 11), []);
+  assert.deepEqual(moveTask(items, 11, 11), []);
+  assert.deepEqual(
+    items.map((t) => t.id),
+    [11, 12, 13, 14],
+  );
+});
+
+test("relationships and artifacts follow documented identifiers and request bodies", async () => {
+  const calls = [];
+  const artifact = {
+    id: 41,
+    taskId: 11,
+    title: "결과",
+    url: "https://example.com",
+    createdByMemberId: 7,
+    createdByNickname: "팀장",
+    createdAt: "2026-10-10T00:00:00Z",
+  };
+  const api = createTasksApi(async (path, options = {}) => {
+    calls.push({ path, ...options });
+    if (!options.method)
+      return path.endsWith("/prerequisites")
+        ? [{ taskId: 12, title: "선행", status: "TODO" }]
+        : [artifact];
+  });
+  assert.equal((await api.prerequisites(2, 11))[0].taskId, 12);
+  assert.equal((await api.artifacts(2, 11))[0].createdByMemberId, 7);
+  await api.setPrerequisites(2, 11, [12]);
+  await api.setPrerequisites(2, 11, []);
+  await api.addArtifact(2, 11, artifact);
+  await api.updateArtifact(2, 11, 41, artifact);
+  await api.deleteArtifact(2, 11, 41);
+  assert.deepEqual(calls[2].body, { prerequisiteTaskIds: [12] });
+  assert.deepEqual(calls[3].body, { prerequisiteTaskIds: [] });
+  assert.deepEqual(calls[4].body, {
+    title: "결과",
+    url: "https://example.com",
+  });
+  assert.equal(calls[4].method, "POST");
+  assert.equal(calls[5].method, "PUT");
+  assert.equal(calls[6].method, "DELETE");
+  assert.equal(calls[6].path, "/projects/2/tasks/11/artifacts/41");
+  await assert.rejects(
+    createTasksApi(async () => [{ title: "missing id" }]).prerequisites(2, 11),
+    (e) => e.code === "INVALID_RESPONSE",
+  );
+  await assert.rejects(
+    createTasksApi(async () => [
+      { ...artifact, createdByMemberId: undefined },
+    ]).artifacts(2, 11),
+    (e) => e.code === "INVALID_RESPONSE",
+  );
 });

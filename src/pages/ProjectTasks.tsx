@@ -68,7 +68,11 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   const reorder = (source: number, target: number, placement?: "before" | "after") => {
     if (!canReorder || source === target) return;
     const snapshot = q.data ?? [];
+    const preview = moveTask(snapshot, source, target, placement).map((task, sortOrder) => ({ ...task, sortOrder }));
+    if (!preview.length) return;
     void action.run(async () => {
+      q.updateData(() => [...preview, ...snapshot.filter(task => task.status === 'CANCELLED')]);
+      let saveError: unknown;
       try {
         const latest = await tasksApi.list(project.id);
         const signature = (items: Task[]) => items.filter(t => t.status !== 'CANCELLED').sort((a,b) => a.sortOrder-b.sortOrder || a.id-b.id).map(t => `${t.id}:${t.sortOrder}`).join(',');
@@ -78,10 +82,22 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
           if (task.sortOrder === sortOrder) continue;
           await tasksApi.update(project.id, task.id, { title: task.title, size: task.size, dueDate: task.dueDate, sortOrder });
         }
-      } finally {
-        // A per-task API may save only part of a move before failing. Show server truth.
-        q.retry();
+      } catch (error) {
+          saveError = error;
+        }
+        {
+        // Read back partial saves without replacing the table with a loading screen.
+        try {
+          const saved = await tasksApi.list(project.id);
+          q.updateData(() => saved);
+        } catch (error) {
+          q.updateData(() => snapshot);
+          if (error instanceof ApiError && error.status === 401) throw error;
+          throw new ApiError(409, 'ORDER_UNCONFIRMED', '저장된 순서를 확인하지 못했습니다. 이전 화면으로 복원했습니다. 최신 상태를 다시 불러와주세요.');
+        }
       }
+
+        if (saveError) throw saveError;
     }, () => {});
   };
   const refresh = () => {

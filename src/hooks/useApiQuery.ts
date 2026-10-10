@@ -23,5 +23,8 @@ export function useApiQuery<T>(load: (signal: AbortSignal) => Promise<T>) {
     return () => controller.abort();
   }, [load, attempt, logout]);
   const retry = useCallback(() => setAttempt(value => value + 1), []);
-  return { ...state, retry };
+  const updateData = useCallback((update: (current: T | null) => T | null) => {
+    setState(current => ({ ...current, data: update(current.data) }));
+  }, []);
+  return { ...state, retry, updateData };
 }
