@@ -1,9 +1,9 @@
-import { GripVertical } from "lucide-react";
+import { GripVertical, House } from "lucide-react";
 import { createPortal } from "react-dom";
 import { ApiError } from "@/api/client";
 import { TaskArtifacts, TaskRelations } from "@/components/TaskRelated";
 import { useCallback, useRef, useState, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
@@ -84,9 +84,20 @@ function Detail({
   };
   return (
     <div className="min-h-screen bg-white">
-      <header className="h-12 border-b border-border flex items-center gap-2">
-        <NavBack fallback={`/projects/${project.id}/tasks`} />
-        <span className="text-sm font-semibold">작업 상세</span>
+      <header className="sticky top-0 z-30 h-12 border-b border-border bg-white flex items-center gap-2">
+        <NavBack label="작업 목록" onClick={() => navigate(`/projects/${project.id}/tasks`)} />
+        <Link
+          to={`/projects/${project.id}/tasks`}
+          className="min-w-0 truncate text-sm font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          title={current.title}
+          aria-label={`${current.title} 작업 목록으로 이동`}
+        >
+          {current.title}
+        </Link>
+        <Btn variant="ghost" className="ml-auto mr-4" onClick={() => navigate("/projects")} aria-label="홈 · 프로젝트 목록으로 이동">
+          <House aria-hidden="true" className="h-4 w-4" />
+          홈
+        </Btn>
       </header>
       <main className="max-w-5xl mx-auto p-6 space-y-4">
         {action.error && <p role="alert">{action.error}</p>}

@@ -244,7 +244,8 @@ export function TaskArtifacts({
           {!q.data?.length && <p>등록된 산출물이 없습니다.</p>}
           <ul className="space-y-3">
             {q.data?.map((a) => (
-              <li key={a.id} className="border-b border-border pb-3 space-y-1">
+              <li key={a.id} className="flex items-center gap-3 border-b border-border pb-3">
+                <div className="min-w-0 flex-1 space-y-1 break-words">
                 {safeUrl(a.url) ? (
                   <a
                     href={safeUrl(a.url)!}
@@ -261,8 +262,9 @@ export function TaskArtifacts({
                   {a.createdByNickname} ·{" "}
                   {new Date(a.createdAt).toLocaleString("ko-KR")}
                 </p>
+                </div>
                 {writable && (manager || memberId === a.createdByMemberId) && (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     <Btn
                       size="sm"
                       disabled={action.busy || action.locked}
