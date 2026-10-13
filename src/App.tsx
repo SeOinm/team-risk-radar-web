@@ -1,3 +1,4 @@
+import { ProjectCheckinHistory } from '@/pages/ProjectCheckinHistory';
 import { ProjectCheckinStatus } from '@/pages/ProjectCheckinStatus';
 import { ProjectCheckin } from '@/pages/ProjectCheckin';
 import { ProjectTasks } from '@/pages/ProjectTasks';
@@ -49,6 +50,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
       <Route path="/projects" element={<ProjectList />} />
       <Route path="/projects/:projectId" element={<ProjectDetail />} />
+      <Route path="/projects/:projectId/checkin-history" element={<ProjectCheckinHistory />} />
       <Route path="/projects/:projectId/checkin-status" element={<ProjectCheckinStatus />} />
       <Route path="/projects/:projectId/checkin" element={<ProjectCheckin />} />
       <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />

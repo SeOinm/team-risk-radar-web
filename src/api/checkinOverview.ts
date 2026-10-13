@@ -1,3 +1,8 @@
+import {
+  isCheckinSnapshot,
+  type CurrentCheckin,
+  type CheckinRound,
+} from "./checkins.ts";
 import { apiRequest, ApiError } from "./client.ts";
 export interface CheckinCounts {
   eligible: number;
@@ -7,6 +12,36 @@ export interface CheckinCounts {
   missed: number;
   pending: number;
   submissionRate: number | null;
+}
+export type CheckinSubmission = NonNullable<CurrentCheckin["submission"]>;
+export interface CheckinHistory {
+  round: CheckinRound;
+  status: string;
+  targetCount: number;
+  submission: CheckinSubmission | null;
+}
+export interface MemberCheckinStatus {
+  memberId: number;
+  nickname: string;
+  status: string;
+  departed: boolean;
+  targetCount: number;
+  submission: CheckinSubmission | null;
+}
+function submission(v: unknown): CheckinSubmission | null {
+  if (v === null) return null;
+  if (
+    !object(v) ||
+    !Number.isSafeInteger(v.roundId) ||
+    !Number.isSafeInteger(v.revision) ||
+    typeof v.late !== "boolean" ||
+    typeof v.submittedAt !== "string" ||
+    typeof v.updatedAt !== "string" ||
+    !Array.isArray(v.tasks) ||
+    !v.tasks.every(isCheckinSnapshot)
+  )
+    throw invalid();
+  return v as unknown as CheckinSubmission;
 }
 export interface TaskIssue {
   taskId: number;
@@ -83,8 +118,59 @@ export function createCheckinOverviewApi(request = apiRequest) {
       return {
         summary: counts(v.summary),
         scheduledDate: v.round.scheduledDate,
-        members: v.members as unknown[],
+        members: v.members.map((m): MemberCheckinStatus => {
+          if (
+            !object(m) ||
+            !Number.isSafeInteger(m.memberId) ||
+            typeof m.nickname !== "string" ||
+            typeof m.status !== "string" ||
+            typeof m.departed !== "boolean" ||
+            !Number.isSafeInteger(m.targetCount)
+          )
+            throw invalid();
+          const saved = submission(m.submission);
+          if (saved && saved.roundId !== r) throw invalid();
+          return { ...m, submission: saved } as unknown as MemberCheckinStatus;
+        }),
       };
+    },
+    async history(p: number, beforeRoundId?: number, signal?: AbortSignal) {
+      const query = new URLSearchParams({ limit: "20" });
+      if (beforeRoundId !== undefined)
+        query.set("beforeRoundId", String(id(beforeRoundId)));
+      const v = await request(`/projects/${id(p)}/checkins/mine?${query}`, {
+        signal,
+      });
+      if (
+        !object(v) ||
+        !Array.isArray(v.items) ||
+        (v.nextBeforeRoundId !== null &&
+          (!Number.isSafeInteger(v.nextBeforeRoundId) ||
+            Number(v.nextBeforeRoundId) < 1))
+      )
+        throw invalid();
+      const items = v.items.map((h): CheckinHistory => {
+        if (
+          !object(h) ||
+          !object(h.round) ||
+          !Number.isSafeInteger(h.round.id) ||
+          h.round.projectId !== p ||
+          typeof h.round.scheduledDate !== "string" ||
+          typeof h.status !== "string" ||
+          !Number.isSafeInteger(h.targetCount)
+        )
+          throw invalid();
+        const saved = submission(h.submission);
+        if (saved && saved.roundId !== h.round.id) throw invalid();
+        return { ...h, submission: saved } as unknown as CheckinHistory;
+      });
+      if (
+        beforeRoundId !== undefined &&
+        v.nextBeforeRoundId !== null &&
+        Number(v.nextBeforeRoundId) >= beforeRoundId
+      )
+        throw invalid();
+      return { items, nextBeforeRoundId: v.nextBeforeRoundId as number | null };
     },
     async issue(p: number, t: number, signal?: AbortSignal) {
       const v = issue(

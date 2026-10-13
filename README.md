@@ -148,6 +148,11 @@ The history GET `/checkins/mine` currently has no success schema; live responses
 
 ## Check-in overview and task issues
 
-Project detail → team check-in overview (`/projects/:projectId/checkin-status`) uses GET summary and the current check-in's status. Cumulative percentage is derived from server submitted/eligible counts; no eligible entries displays no aggregate instead of a misleading 0%. Individual member rows are pending a documented/nonempty members response.
+Project detail → team check-in overview (`/projects/:projectId/checkin-status`) uses GET summary and the current check-in's status. Cumulative percentage is derived from server submitted/eligible counts; no eligible entries displays no aggregate instead of a misleading 0%. Member rows now use the documented MemberStatus schema and display stored submission snapshots.
 
 Task detail displays GET issue, then confirms PATCH issue/resolve with the observed expectedRevision. Administrators and main-task assignees can resolve outside the check-in window; CLOSED projects disable resolution. Conflicts use existing action error/lock handling. `npm run test:checkin-overview` checks contracts; browser fixtures verify resolution and role/project restrictions. No live mutations were used for verification.
+
+
+## Check-in history and member submissions (2026-10-13)
+
+Project detail and the check-in page link to `/projects/:projectId/checkin-history`. GET mine uses limit=20 and the server nextBeforeRoundId cursor for next/previous pages. Empty, loading, error/retry and missing submissions are handled. History and team member rows expand the submission snapshot (progress, issue, team request and next action), never the current task data. Team overview displays current check-in members, departure indicator and saved submissions. API contract tests and browser fixtures cover pagination and snapshots. Live data presentation still needs acceptance testing with real submitted records.
