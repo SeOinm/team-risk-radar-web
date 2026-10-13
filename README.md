@@ -133,3 +133,21 @@ src/
 
 
 작업 순서 이동은 관리자만 전체·기본 순서·취소 제외 상태에서 사용할 수 있습니다. 손잡이는 마우스/터치 포인터와 키보드 위·아래 키를 지원합니다. 드롭 즉시 화면의 순서를 바꾸고 저장 요청을 시작합니다. 저장 중에는 추가 순서 이동을 잠그고 화면은 유지합니다. 저장 직전 최신 목록의 순서를 확인하고, 변경된 작업만 기존 설정과 새 sortOrder를 PUT으로 보냅니다. 현재 일괄 순서 저장 API가 없어 여러 요청은 원자적이지 않습니다. 중간 실패 시 서버 목록을 다시 조회하여 실제 저장된 순서로 맞춥니다. 조회마저 실패하면 이전 화면으로 복원하고 최신 상태를 불러올 때까지 편집을 잠급니다. 하위 작업 순서 이동에도 동일한 방식을 적용합니다. 취소된 작업은 재정렬 요청에서 제외합니다.
+
+## Check-in integration: current round and first submission
+
+Project detail links to `/projects/:projectId/checkin`. The existing `/checkin` route remains a sample. The new page uses the deployed Current/Round/Target/TaskSnapshot/Submission schemas added on 2026-10-10.
+
+GET `.../checkins/current` controls round availability and submit permissions. Targets with an excludedReason are displayed separately; every remaining target is submitted, even without edits. POST `.../checkins/{roundId}/submission` sends expectedRevision=0, each target's version and current issue revision, plus optional issueContent/requestToTeam/nextAction. Progress and task status are read-only server values.
+
+The request key and payload are retained for explicit retries after network/5xx errors; edits are locked while the outcome is uncertain. Conflicts require reloading current state. There are no automatic mutation retries. Submission success is followed by a read of the server's submission snapshot. Timely editing is connected via PUT with the current submission revision and a new request key. The edit button rechecks the current server state before opening; only ON_TIME with canEdit=true can edit. History, team status, cumulative submission rate and separate issue resolution remain the next stages.
+
+`npm run test:checkins` and browser fixtures cover unchanged submissions, exclusions, duplicate clicks, identical retries, conflicts, no round, closed windows and late submissions. Live server checks are read-only.
+
+The history GET `/checkins/mine` currently has no success schema; live responses for the test account are `{items:[],nextBeforeRoundId:null}`. Item structure is pending confirmation, so a history UI is not fabricated. Eligibility guidance reflects the confirmed policy: assignee changes after check-in opens apply to the next check-in.
+
+## Check-in overview and task issues
+
+Project detail → team check-in overview (`/projects/:projectId/checkin-status`) uses GET summary and the current check-in's status. Cumulative percentage is derived from server submitted/eligible counts; no eligible entries displays no aggregate instead of a misleading 0%. Individual member rows are pending a documented/nonempty members response.
+
+Task detail displays GET issue, then confirms PATCH issue/resolve with the observed expectedRevision. Administrators and main-task assignees can resolve outside the check-in window; CLOSED projects disable resolution. Conflicts use existing action error/lock handling. `npm run test:checkin-overview` checks contracts; browser fixtures verify resolution and role/project restrictions. No live mutations were used for verification.
