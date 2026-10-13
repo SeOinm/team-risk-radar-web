@@ -56,3 +56,67 @@ test("issue resolution sends only exact revision with PATCH and respects server 
     (e) => e.status === 409,
   );
 });
+
+test("history cursor and member snapshots use documented shapes and preserve historical issue", async () => {
+  const task = {
+    taskId: 3,
+    title: "과거 작업",
+    status: "BLOCKED",
+    progress: 50,
+    totalChildren: 2,
+    completedChildren: 1,
+    issue: { open: true, content: "과거 이슈", revision: 2 },
+    requestToTeam: "검토",
+    nextAction: "수정",
+  };
+  const saved = {
+    roundId: 10,
+    revision: 1,
+    late: false,
+    submittedAt: "2026-10-11T00:00:00Z",
+    updatedAt: "2026-10-11T00:00:00Z",
+    tasks: [task],
+  };
+  const round = { id: 10, projectId: 5, scheduledDate: "2026-10-11" };
+  let path;
+  const api = createCheckinOverviewApi(async (url) => {
+    path = url;
+    return url.includes("/mine?")
+      ? {
+          items: [
+            { round, status: "ON_TIME", targetCount: 1, submission: saved },
+          ],
+          nextBeforeRoundId: 10,
+        }
+      : {
+          round,
+          summary: counts,
+          members: [
+            {
+              memberId: 7,
+              nickname: "테스트",
+              status: "ON_TIME",
+              departed: true,
+              targetCount: 1,
+              submission: saved,
+            },
+          ],
+        };
+  });
+  const history = await api.history(5, 20);
+  assert.equal(path, "/projects/5/checkins/mine?limit=20&beforeRoundId=20");
+  assert.equal(history.items[0].submission.tasks[0].issue.content, "과거 이슈");
+  assert.equal(history.nextBeforeRoundId, 10);
+  assert.equal((await api.status(5, 10)).members[0].departed, true);
+  await assert.rejects(
+    api.history(5, 10),
+    (e) => e.code === "INVALID_RESPONSE",
+  );
+  await assert.rejects(
+    createCheckinOverviewApi(async () => ({
+      items: [{ round, status: "ON_TIME", targetCount: 1, submission: {} }],
+      nextBeforeRoundId: null,
+    })).history(5),
+    (e) => e.code === "INVALID_RESPONSE",
+  );
+});

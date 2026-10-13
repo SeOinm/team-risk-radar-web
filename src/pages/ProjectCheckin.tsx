@@ -60,7 +60,7 @@ function CheckinData({ project }: { project: ProjectResponse }) {
         </Link>
       </header>
       <main className="max-w-3xl mx-auto p-6 space-y-5">
-        <h1 className="text-lg font-semibold">체크인</h1>
+        <div className="flex justify-between gap-3"><h1 className="text-lg font-semibold">체크인</h1><Link className="text-sm text-brand-blue hover:underline" to={`/projects/${project.id}/checkin-history`}>내 체크인 기록</Link></div>
         {q.loading ? (
           <p role="status">체크인을 불러오고 있습니다…</p>
         ) : q.error ? (

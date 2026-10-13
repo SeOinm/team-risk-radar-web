@@ -47,7 +47,7 @@ export interface CurrentCheckin {
 const object = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
 const nullableString = (v: unknown) => v === null || typeof v === "string";
-function snapshot(v: unknown): boolean {
+export function isCheckinSnapshot(v: unknown): boolean {
   return (
     object(v) &&
     Number.isSafeInteger(v.taskId) &&
@@ -140,7 +140,7 @@ export function createCheckinsApi(request = apiRequest) {
             typeof t.titleAtOpen === "string" &&
             nullableString(t.excludedReason) &&
             nullableString(t.version) &&
-            (t.current === null || snapshot(t.current)) &&
+            (t.current === null || isCheckinSnapshot(t.current)) &&
             (t.excludedReason !== null ||
               (typeof t.version === "string" &&
                 t.version.length === 64 &&
@@ -157,7 +157,7 @@ export function createCheckinsApi(request = apiRequest) {
           typeof v.submission.late !== "boolean" ||
           typeof v.submission.submittedAt !== "string" ||
           !Array.isArray(v.submission.tasks) ||
-          !v.submission.tasks.every(snapshot))
+          !v.submission.tasks.every(isCheckinSnapshot))
       )
         throw invalid();
       return v as unknown as CurrentCheckin;

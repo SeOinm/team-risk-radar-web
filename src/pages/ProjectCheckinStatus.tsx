@@ -1,3 +1,5 @@
+import { checkinStatusLabel } from "@/lib/checkinStatus";
+import { CheckinSubmissionView } from "@/components/CheckinSubmissionView";
 import { useCallback } from "react";
 import { Link, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
@@ -93,6 +95,38 @@ function Overview({ project }: { project: ProjectResponse }) {
                 {q.data.status ? (
                   <>
                     <Counts data={q.data.status.summary} />
+                    <ul className="space-y-3">
+                      {q.data.status.members.map((m) => (
+                        <li
+                          key={m.memberId}
+                          className="rounded border border-border p-4 space-y-3"
+                        >
+                          <div className="flex justify-between gap-2 flex-wrap">
+                            <h3 className="font-semibold">
+                              {m.nickname}
+                              {m.departed && (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  현재 미참여
+                                </span>
+                              )}
+                            </h3>
+                            <span className="text-sm">
+                              {m.submission
+                                ? m.submission.late
+                                  ? "지각 제출"
+                                  : "정시 제출"
+                                : checkinStatusLabel(m.status)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            대상 작업 {m.targetCount}개
+                          </p>
+                          {m.submission && (
+                            <CheckinSubmissionView submission={m.submission} />
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                     {q.data.status.summary.eligible === 0 && (
                       <p className="text-sm text-muted-foreground">
                         이번 체크인 제출 대상자가 없습니다.
