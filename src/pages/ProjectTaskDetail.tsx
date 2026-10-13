@@ -1,3 +1,4 @@
+import { TaskIssue } from "@/components/TaskIssue";
 import { GripVertical, House } from "lucide-react";
 import { createPortal } from "react-dom";
 import { ApiError } from "@/api/client";
@@ -208,6 +209,7 @@ function Detail({
                       q.updateData((data) => (data ? { ...data, task } : data))
                     }
                   />
+                  <TaskIssue project={current} task={t} members={q.data.members} />
                   <Section title="체크인 기록">
                     <p>체크인 API 연결 대기</p>
                   </Section>
