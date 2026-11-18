@@ -34,31 +34,31 @@ export function ProjectList() {
   return (
     <div className="min-h-screen bg-white">
       {/* Top nav */}
-      <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center justify-between px-6">
+      <header className="h-12 lg:h-[3.3rem] border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center justify-between px-6">
         <div className="flex items-center gap-2">
           <BrandLogo />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[#6B7280]">{user?.nickname}님</span>
-          <Btn variant="ghost" size="sm" onClick={() => { logout(); navigate('/auth', { replace: true }); }}>로그아웃</Btn>
-          <Btn variant="primary" size="sm" onClick={() => navigate('/create-project')}>
-            <Plus className="w-3.5 h-3.5" /> 새 프로젝트
+          <span className="text-[12px] lg:text-[13px] text-[#6B7280]">{user?.nickname}님</span>
+          <Btn variant="ghost" size="sm" className="lg:h-8 lg:px-3 lg:text-[13px]" onClick={() => { logout(); navigate('/auth', { replace: true }); }}>로그아웃</Btn>
+          <Btn variant="primary" size="sm" className="lg:h-8 lg:px-3 lg:text-[13px]" onClick={() => navigate('/create-project')}>
+            <Plus className="w-3.5 h-3.5 lg:size-4" /> 새 프로젝트
           </Btn>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
+      <main className="max-w-3xl mx-auto px-6 py-8 lg:max-w-[52.8rem] lg:px-[1.65rem] lg:py-9">
         {/* Page heading */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 lg:mb-7">
           <div>
-            <h1 className="text-[18px] font-semibold text-[#111827] tracking-tight">내 프로젝트</h1>
-            <p className="text-[13px] text-[#6B7280] mt-0.5">참여 중인 팀 프로젝트</p>
+            <h1 className="text-[18px] lg:text-[20px] font-semibold text-[#111827] tracking-tight">내 프로젝트</h1>
+            <p className="text-[13px] lg:text-[14px] text-[#6B7280] mt-0.5">참여 중인 팀 프로젝트</p>
           </div>
-          <span className="text-[12px] text-[#9CA3AF]">{loading ? '불러오는 중…' : error ? '' : `${projectList.length}개`}</span>
+          <span className="text-[12px] lg:text-[13px] text-[#9CA3AF]">{loading ? '불러오는 중…' : error ? '' : `${projectList.length}개`}</span>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex flex-wrap items-center gap-2 mb-5 lg:gap-2.5 lg:mb-6 lg:[&>div]:h-9 lg:[&_button]:text-[13px]">
           <FilterTabs<StatusFilter>
             options={[
               { label: '전체', value: '전체' },
@@ -89,7 +89,7 @@ export function ProjectList() {
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-[13px] text-[#374151] font-medium mb-1">표시할 프로젝트가 없습니다</p>
-              <p className="text-[12px] text-[#9CA3AF]">새 프로젝트를 만들거나 필터를 변경해보세요</p>
+              <p className="text-[12px] lg:text-[13px] text-[#9CA3AF]">새 프로젝트를 만들거나 필터를 변경해보세요</p>
             </div>
           ) : (
             filtered.map((project, i) => {
@@ -98,11 +98,11 @@ export function ProjectList() {
                   {i > 0 && <Divider />}
                   <button
                     onClick={() => navigate(`/projects/${project.id}`)}
-                    className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#F9FAFB] transition-colors text-left group"
+                    className="w-full flex items-center gap-4 px-4 py-3 lg:gap-[1.1rem] lg:px-[1.1rem] lg:py-[0.825rem] hover:bg-[#F9FAFB] transition-colors text-left group"
                   >
                     {/* Status dot */}
                     <span
-                      className="w-2 h-2 rounded-full shrink-0 mt-0.5"
+                      className="w-2 h-2 lg:size-[0.55rem] rounded-full shrink-0 mt-0.5"
                       style={{
                         backgroundColor: project.status === 'DONE' ? '#16A34A' : project.status === 'CLOSED' ? '#9CA3AF' : '#2563EB',
                       }}
@@ -110,23 +110,23 @@ export function ProjectList() {
 
                     {/* Project info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-medium text-[#111827] truncate">{project.title}</span>
+                      <div className="flex items-center gap-2 flex-wrap lg:[&>span:not(:first-child)]:text-[12px]">
+                        <span className="text-[13px] lg:text-[14px] font-medium text-[#111827] truncate">{project.title}</span>
                         <RoleBadgeDs role={ROLE_LABELS[project.myRole]} />
                       </div>
-                      <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+                      <p className="text-[12px] lg:text-[13px] text-[#9CA3AF] mt-0.5">
                         {project.className ? `${project.className} · ` : ''}마감 {project.deadline}
                       </p>
                     </div>
 
                     {/* Right meta */}
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0 lg:[&_span]:text-[12px]">
                       {project.status === 'DONE' ? (
                         <Badge variant="safe">완료</Badge>
                       ) : (
                         project.status === 'CLOSED' ? <Badge variant="default">종료</Badge> : <RiskScore score={null} />
                       )}
-                      <ChevronRight className="w-3.5 h-3.5 text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors" />
+                      <ChevronRight className="w-3.5 h-3.5 lg:size-4 text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors" />
                     </div>
                   </button>
                 </div>
@@ -136,10 +136,10 @@ export function ProjectList() {
         </div>
 
         {/* Quick nav for demo */}
-        <div className="mt-10">
-          <p className="text-[11px] font-medium text-[#9CA3AF] uppercase tracking-wide mb-3">데모 화면 이동</p>
-          <p className="text-[12px] text-muted-foreground mb-3">아래 화면은 샘플 데이터 미리보기입니다. 위의 실제 프로젝트 정보와는 연결되지 않습니다.</p>
-          <div className="grid grid-cols-2 gap-1.5">
+        <div className="mt-10 lg:mt-11">
+          <p className="text-[11px] lg:text-[12px] font-medium text-[#9CA3AF] uppercase tracking-wide mb-3">데모 화면 이동</p>
+          <p className="text-[12px] lg:text-[13px] text-muted-foreground mb-3">아래 화면은 샘플 데이터 미리보기입니다. 위의 실제 프로젝트 정보와는 연결되지 않습니다.</p>
+          <div className="grid grid-cols-2 gap-1.5 lg:gap-2">
             {[
               { label: '팀장 대시보드', path: '/dashboard' },
               { label: '팀원 홈', path: '/member-home' },
@@ -155,7 +155,7 @@ export function ProjectList() {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="flex items-center justify-between px-3 py-2 rounded-md border border-[#E5E7EB] hover:bg-[#F9FAFB] text-[12px] text-[#374151] transition-colors"
+                className="flex items-center justify-between px-3 py-2 lg:px-3.5 lg:py-2.5 rounded-md border border-[#E5E7EB] hover:bg-[#F9FAFB] text-[12px] lg:text-[13px] text-[#374151] transition-colors"
               >
                 {item.label}
                 <ChevronRight className="w-3 h-3 text-[#D1D5DB]" />

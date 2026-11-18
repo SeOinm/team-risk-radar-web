@@ -91,7 +91,8 @@ export function ProjectCalendarPanel({ project, query }: {
   const [dropDay, setDropDay] = useState<string | null>(null);
   const drag = useRef<Drag | null>(null);
   const action = useApiAction();
-  const canEdit = project.myRole !== "MEMBER" && project.status === "IN_PROGRESS" && !action.busy && !action.locked;
+  const hasEditPermission = project.myRole !== "MEMBER" && project.status === "IN_PROGRESS";
+  const canEdit = hasEditPermission && !action.busy && !action.locked;
   const tasks = useMemo(() => query.data?.filter(task => task.status !== "CANCELLED"), [query.data]);
   const loadLinks = useCallback(async (signal: AbortSignal) => {
     if (!tasks?.length || !showLinks) return [];
@@ -125,7 +126,7 @@ export function ProjectCalendarPanel({ project, query }: {
   const column = 82;
   const row = 44;
   const width = days.length * column;
-  const chartHeight = Math.max(5, scheduled.length + 1) * row;
+  const chartHeight = Math.max(5, visible.length + 1) * row;
 
   function storeStarts(additions: Starts) {
     const next = { ...starts, ...readStarts(storageKey), ...additions };
@@ -217,25 +218,6 @@ export function ProjectCalendarPanel({ project, query }: {
         {storageWarning && <p role="alert">{storageWarning}</p>}
         {query.loading && <p role="status">작업을 불러오는 중…</p>}
         {query.error && <div role="alert">{query.error} <Btn onClick={query.retry}>다시 시도</Btn></div>}
-        {panel === "settings" && preview && (
-          <form className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-4" onSubmit={event => {
-            event.preventDefault();
-            const length = gap(preview.start, preview.end);
-            if (!Number.isFinite(length) || length < 0 || (!editTask && length > 92)) {
-              setSettingsError(editTask ? "마감일은 시작일과 같거나 이후여야 합니다." : "시작일부터 종료일까지 최대 93일을 선택해주세요.");
-              return;
-            }
-            if (editTask) save(editTask, preview);
-            else setRange(preview);
-            setPanel(null);
-          }}>
-            <label className="grid gap-1 text-sm">{editTask ? "작업 시작일" : "표시 시작일"}<input className={field} type="date" required value={preview.start} onChange={event => setPreview({ ...preview, start: event.target.value })} /></label>
-            <label className="grid gap-1 text-sm">{editTask ? "작업 마감일" : "표시 종료일"}<input className={field} type="date" required value={preview.end} onChange={event => setPreview({ ...preview, end: event.target.value })} /></label>
-            <Btn type="submit" disabled={Boolean(editTask) && !canEdit}>{editTask ? "일정 저장" : "범위 적용"}</Btn>
-            <Btn type="button" onClick={() => setPanel(null)}>닫기</Btn>
-            {settingsError && <p role="alert">{settingsError}</p>}
-          </form>
-        )}
         {panel === "template" && (
           <section className="space-y-3 rounded-lg border border-border p-4" aria-label="작업 템플릿 미리보기">
             {templates.loading && <p>템플릿을 불러오는 중…</p>}
@@ -286,22 +268,98 @@ export function ProjectCalendarPanel({ project, query }: {
           <section className="min-w-0 rounded-xl border border-border" aria-label="간트 달력">
             <div className="flex flex-wrap items-center gap-2 p-3">
               <Btn size="sm" aria-label="이전 기간" onClick={() => showPeriod(shift(range.start, -gap(range.start, range.end) - 1), gap(range.start, range.end) + 1)}>←</Btn>
-              <Btn size="sm" onClick={() => showPeriod(today(), gap(range.start, range.end) + 1)}>오늘</Btn>
-              <Btn size="sm" aria-label="다음 기간" onClick={() => showPeriod(shift(range.end, 1), gap(range.start, range.end) + 1)}>→</Btn>
               <span className="text-sm font-medium">{range.start} ~ {range.end}</span>
-              {[7, 14, 30].map(length => <Btn size="sm" key={length} aria-pressed={gap(range.start, range.end) + 1 === length}
-                onClick={() => showPeriod(range.start, length)}>{length === 30 ? "30일" : length / 7 + "주"}</Btn>)}
-              <select className={field} aria-label="담당자 필터" value={assignee} onChange={event => { setView({ ...view, assignee: event.target.value }); setSelected(null); }}>
-                <option value="">전체 담당자</option>{members.map(member => <option key={member.memberId} value={member.memberId}>{member.nickname}</option>)}
-              </select>
-              <label className="text-sm"><input type="checkbox" checked={weekends} onChange={event => setView({ ...view, weekends: event.target.checked })} /> 주말</label>
-              <label className="text-sm"><input type="checkbox" checked={showLinks} onChange={event => setView({ ...view, showLinks: event.target.checked })} /> 연결선</label>
+              <Btn size="sm" aria-label="다음 기간" onClick={() => showPeriod(shift(range.end, 1), gap(range.start, range.end) + 1)}>→</Btn>
+              <Btn size="sm" variant="ghost" onClick={() => showPeriod(today(), gap(range.start, range.end) + 1)}>오늘</Btn>
               <div className="ml-auto flex flex-wrap gap-2">
                 <Btn size="sm" disabled={!canEdit} onClick={() => { setTemplateName(""); setPanel("template"); }}>템플릿 선택</Btn>
                 <Btn size="sm" onClick={() => { setEditTask(null); setPreview(range); setSettingsError(""); setPanel("settings"); }}>달력 설정</Btn>
               </div>
             </div>
-            <ul className="flex flex-wrap gap-2 px-3 pb-3 text-xs" aria-label="담당자 색상">
+            {panel === "settings" && preview && (
+              <form key={editTask?.id ?? "view"} aria-label={editTask ? "작업 일정 수정" : "달력 설정"} className="border-y border-border bg-slate-50/80 px-4 py-4" onSubmit={event => {
+                event.preventDefault();
+                const length = gap(preview.start, preview.end);
+                if (!Number.isFinite(length) || length < 0 || (!editTask && length > 92)) {
+                  setSettingsError(editTask ? "마감일은 시작일과 같거나 이후여야 합니다." : "시작일부터 종료일까지 최대 93일을 선택해주세요.");
+                  return;
+                }
+                if (editTask) save(editTask, preview);
+                else {
+                  const values = new FormData(event.currentTarget);
+                  setView({
+                    range: preview,
+                    assignee: String(values.get("assignee") ?? ""),
+                    weekends: values.has("weekends"),
+                    showLinks: values.has("showLinks"),
+                  });
+                  setSelected(null);
+                }
+                setPanel(null);
+              }}>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-5">
+                  <fieldset className="min-w-0 space-y-2">
+                    <legend className="mb-2 text-sm font-semibold">{editTask ? editTask.title : "표시 기간"}</legend>
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2">
+                      <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+                        {editTask ? "작업 시작일" : "시작일"}
+                        <input className={`${field} min-w-0 w-full text-foreground`} type="date" required value={preview.start}
+                          onChange={event => setPreview({ ...preview, start: event.target.value })} />
+                      </label>
+                      <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+                        {editTask ? "작업 마감일" : "종료일"}
+                        <input className={`${field} min-w-0 w-full text-foreground`} type="date" required value={preview.end}
+                          onChange={event => setPreview({ ...preview, end: event.target.value })} />
+                      </label>
+                    </div>
+                    {!editTask && (
+                      <div className="inline-flex flex-wrap gap-0.5 rounded-md border border-border bg-white p-0.5" role="group" aria-label="빠른 기간 선택">
+                        {[7, 14, 30].map(length => (
+                          <Btn size="sm" variant="ghost" type="button" key={length}
+                            className="h-7 px-2.5 aria-pressed:bg-slate-100 aria-pressed:text-foreground"
+                            disabled={!Number.isFinite(stamp(preview.start))}
+                            aria-pressed={gap(preview.start, preview.end) + 1 === length}
+                            onClick={() => {
+                              setPreview({ ...preview, end: shift(preview.start, length - 1) });
+                              setSettingsError("");
+                            }}>
+                            {length === 30 ? "30일" : length / 7 + "주"}
+                          </Btn>
+                        ))}
+                      </div>
+                    )}
+                  </fieldset>
+                  {!editTask && (
+                    <fieldset className="min-w-0 space-y-2">
+                      <legend className="mb-2 text-sm font-semibold">보기 옵션</legend>
+                      <label className="grid gap-1 text-xs text-muted-foreground">
+                        담당자
+                        <select className={`${field} w-full text-foreground`} name="assignee" defaultValue={assignee}>
+                          <option value="">전체 담당자</option>
+                          {members.map(member => <option key={member.memberId} value={member.memberId}>{member.nickname}</option>)}
+                        </select>
+                      </label>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <label className="inline-flex min-h-8 items-center gap-1.5 text-sm">
+                          <input className="accent-slate-900" name="weekends" type="checkbox" defaultChecked={weekends} />주말 표시
+                        </label>
+                        <label className="inline-flex min-h-8 items-center gap-1.5 text-sm">
+                          <input className="accent-slate-900" name="showLinks" type="checkbox" defaultChecked={showLinks} />연결선 표시
+                        </label>
+                      </div>
+                    </fieldset>
+                  )}
+                </div>
+                <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
+                  {settingsError && <p className="mr-auto text-sm text-red-700" role="alert">{settingsError}</p>}
+                  <Btn type="button" size="sm" variant="ghost" onClick={() => setPanel(null)}>취소</Btn>
+                  <Btn type="submit" size="sm" variant="primary" disabled={Boolean(editTask) && !canEdit}>
+                    {editTask ? "일정 저장" : "적용"}
+                  </Btn>
+                </div>
+              </form>
+            )}
+            <ul className={`flex flex-wrap gap-2 px-3 pb-3 text-xs ${panel === "settings" ? "pt-3" : ""}`} aria-label="담당자 색상">
               {members.map((member, index) => <li key={member.memberId} className={`rounded px-2 py-1 ${colors[index % colors.length]}`}>{member.nickname}</li>)}
               <li className="rounded bg-slate-100 px-2 py-1 text-slate-900">미배정</li>
             </ul>
@@ -350,17 +408,17 @@ export function ProjectCalendarPanel({ project, query }: {
                         if (day) place(day, drag.current);
                         clearDrag();
                       }}>
-                      {canEdit && <button type="button" className="h-full w-2 shrink-0 cursor-ew-resize border-r border-current/20" draggable aria-label={task.title + " 시작일 조정"} title="끌어서 시작일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "start" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
+                      {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-r border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 시작일 조정"} title="끌어서 시작일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "start" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
                       <Link to={`${base}/tasks/${task.id}`} state={{ fromCalendar: true }} aria-label={description}
                         className="min-w-0 flex-1 truncate px-1.5 text-xs font-medium hover:underline" draggable={false}>{task.title}</Link>
-                      {canEdit && <button type="button" className="h-full w-2 shrink-0 cursor-ew-resize border-l border-current/20" draggable aria-label={task.title + " 마감일 조정"} title="끌어서 마감일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "end" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
+                      {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-l border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 마감일 조정"} title="끌어서 마감일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "end" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
                       <span className={`pointer-events-none absolute top-full z-10 hidden w-max max-w-56 whitespace-normal rounded bg-slate-900 px-2 py-1 text-xs text-white shadow group-hover:block group-focus-within:block ${last >= days.length - 2 && first > 1 ? "right-0" : "left-0"}`} aria-hidden="true">{description}</span>
                     </div>;
                   })}
                 </div>
               </div>
             </div>
-            {action.busy && <p className="border-t border-border p-3 text-xs text-muted-foreground" role="status">저장 중…</p>}
+            <p className="sr-only" role="status">{action.busy ? "저장 중…" : ""}</p>
           </section>
         </div>
       </div>

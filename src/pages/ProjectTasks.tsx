@@ -117,7 +117,7 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
           <span className="truncate">{project.title}</span>
         </Link>
       </header>
-      <main className="mx-auto max-w-screen-2xl space-y-6 p-4 sm:p-6">
+      <main className="mx-auto max-w-6xl space-y-6 px-6 py-4 sm:py-6">
         <h1 className="text-lg font-semibold">작업 보드</h1>
         <ProjectCalendarPanel project={project} query={q} />
         <div className="flex items-center justify-between gap-3 flex-wrap border-t border-border pt-4">
