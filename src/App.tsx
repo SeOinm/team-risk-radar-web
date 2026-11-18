@@ -1,6 +1,7 @@
 import { ProjectCheckinHistory } from '@/pages/ProjectCheckinHistory';
 import { ProjectCheckinStatus } from '@/pages/ProjectCheckinStatus';
 import { ProjectCheckin } from '@/pages/ProjectCheckin';
+import { ProjectCalendar } from '@/pages/ProjectCalendar';
 import { ProjectTasks } from '@/pages/ProjectTasks';
 import { ProjectTaskDetail } from '@/pages/ProjectTaskDetail';
 import { ProjectTeam } from '@/pages/ProjectTeam';
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/projects/:projectId/checkin-status" element={<ProjectCheckinStatus />} />
       <Route path="/projects/:projectId/checkin" element={<ProjectCheckin />} />
       <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />
+      <Route path="/projects/:projectId/calendar" element={<ProjectCalendar />} />
       <Route path="/projects/:projectId/tasks" element={<ProjectTasks />} />
       <Route path="/projects/:projectId/tasks/:taskId" element={<ProjectTaskDetail />} />
       <Route path="/projects/:projectId/members" element={<ProjectTeam />} />

@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { ApiError } from "@/api/client";
 import { TaskArtifacts, TaskRelations } from "@/components/TaskRelated";
 import { useCallback, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
@@ -56,6 +56,9 @@ function Detail({
   taskId: string;
 }) {
   const navigate = useNavigate();
+  const fromCalendar = useLocation().state?.fromCalendar === true;
+  const backLabel = fromCalendar ? "작업 달력" : "작업 목록";
+  const backPath = `/projects/${project.id}/tasks`;
   const load = useCallback(
     async (signal: AbortSignal) => {
       const [task, members, current] = await Promise.all([
@@ -86,12 +89,12 @@ function Detail({
   return (
     <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-30 h-12 border-b border-border bg-white flex items-center gap-2">
-        <NavBack label="작업 목록" onClick={() => navigate(`/projects/${project.id}/tasks`)} />
+        <NavBack label={backLabel} onClick={() => navigate(backPath)} />
         <Link
-          to={`/projects/${project.id}/tasks`}
+          to={backPath}
           className="min-w-0 truncate text-sm font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           title={current.title}
-          aria-label={`${current.title} 작업 목록으로 이동`}
+          aria-label={`${current.title} ${backLabel}으로 이동`}
         >
           {current.title}
         </Link>

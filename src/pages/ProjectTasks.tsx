@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuChe
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router";
+import { ProjectCalendarPanel } from "@/pages/ProjectCalendar";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
@@ -116,9 +117,10 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
           <span className="truncate">{project.title}</span>
         </Link>
       </header>
-      <main className="max-w-6xl mx-auto p-6 space-y-4">
+      <main className="mx-auto max-w-screen-2xl space-y-6 p-4 sm:p-6">
         <h1 className="text-lg font-semibold">작업 보드</h1>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+        <ProjectCalendarPanel project={project} query={q} />
+        <div className="flex items-center justify-between gap-3 flex-wrap border-t border-border pt-4">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="inline-flex items-center rounded-md bg-muted p-1" aria-label="작업 필터">
               {["전체", "미배정", "막힘", "취소"].map((f) => (
@@ -140,17 +142,6 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          {project.myRole !== "MEMBER" && (
-            <div className="flex items-center gap-2 ml-auto">
-              <Btn variant="ghost" disabled={!writable || action.busy} onClick={() => setForm("templates")}>템플릿으로 추가</Btn>
-              <Btn variant="primary" disabled={!writable || action.busy} onClick={() => setForm("create")}>
-                <Plus aria-hidden="true" className="w-4 h-4" />새 작업
-              </Btn>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-muted-foreground">{q.loading ? "불러오는 중…" : q.error ? "" : `작업 ${rows.length}개`}</span>
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             정렬
             <span className="relative">
@@ -162,6 +153,14 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
               <ChevronDown aria-hidden="true" className="w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
             </span>
           </label>
+          {project.myRole !== "MEMBER" && (
+            <div className="flex items-center gap-2 ml-auto">
+              <Btn variant="ghost" disabled={!writable || action.busy} onClick={() => setForm("templates")}>템플릿으로 추가</Btn>
+              <Btn variant="primary" disabled={!writable || action.busy} onClick={() => setForm("create")}>
+                <Plus aria-hidden="true" className="w-4 h-4" />새 작업
+              </Btn>
+            </div>
+          )}
         </div>
         {project.status !== "IN_PROGRESS" && (
           <p>완료·종료된 프로젝트는 작업을 변경할 수 없습니다.</p>
