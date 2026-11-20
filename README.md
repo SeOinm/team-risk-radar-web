@@ -45,7 +45,7 @@ npm run build
 ```
 src/
 ├── pages/        # 화면 단위 페이지 (대시보드, 체크인, 작업 보드 등)
-├── components/   # 재사용 컴포넌트 (RiskBadge, RiskGauge, UI 등)
+├── components/   # 공통 화면 컴포넌트와 UI
 ├── data/         # 샘플 데이터
 ├── types/        # 공통 도메인 타입 정의
 └── App.tsx       # 라우팅 정의

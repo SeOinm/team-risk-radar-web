@@ -102,20 +102,18 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
       } catch (error) {
           saveError = error;
         }
-        {
         // Read back partial saves without replacing the table with a loading screen.
-        try {
-          const saved = await tasksApi.list(project.id);
-          q.updateData(() => saved);
-        } catch (error) {
-          q.updateData(() => snapshot);
-          if (error instanceof ApiError && error.status === 401) throw error;
-          throw new ApiError(409, 'ORDER_UNCONFIRMED', '저장된 순서를 확인하지 못했습니다. 이전 화면으로 복원했습니다. 최신 상태를 다시 불러와주세요.');
-        }
+      try {
+        const saved = await tasksApi.list(project.id);
+        q.updateData(() => saved);
+      } catch (error) {
+        q.updateData(() => snapshot);
+        if (error instanceof ApiError && error.status === 401) throw error;
+        throw new ApiError(409, 'ORDER_UNCONFIRMED', '저장된 순서를 확인하지 못했습니다. 이전 화면으로 복원했습니다. 최신 상태를 다시 불러와주세요.');
       }
 
-        if (saveError) throw saveError;
-    }, () => {});
+      if (saveError) throw saveError;
+    });
   };
   const refresh = () => {
     setForm(null);

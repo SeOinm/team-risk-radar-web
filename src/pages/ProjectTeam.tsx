@@ -6,7 +6,7 @@ import { Btn, NavBack, RoleBadgeDs, AlertBanner } from "@/components/ds";
 import { projectsApi, ROLE_LABELS, type ProjectResponse } from "@/api/projects";
 import { teamApi, type Member, type Role } from "@/api/team";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { useTeamAction } from "@/hooks/useTeamAction";
+import { useApiAction } from "@/hooks/useApiAction";
 import { useAuth } from "@/auth/context";
 
 export function ProjectTeam({ inviteOnly = false }: { inviteOnly?: boolean }) {
@@ -49,7 +49,7 @@ function TeamView({
     [project.id],
   );
   const q = useApiQuery(load);
-  const action = useTeamAction();
+  const action = useApiAction();
   const [confirmation, setConfirmation] = useState<{
     member: Member;
     kind: "remove" | "role" | "reject";

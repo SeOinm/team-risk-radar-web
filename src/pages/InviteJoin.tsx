@@ -5,7 +5,7 @@ import { Btn } from "@/components/ds";
 import { teamApi, type Preview } from "@/api/team";
 import { useAuth } from "@/auth/context";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { useTeamAction } from "@/hooks/useTeamAction";
+import { useApiAction } from "@/hooks/useApiAction";
 export function InviteJoin({ token }: { token: string }) {
   const load = useCallback(
     (signal: AbortSignal) => teamApi.preview(token, signal),
@@ -68,7 +68,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
     [preview.projectId],
   );
   const q = useApiQuery(load);
-  const action = useTeamAction();
+  const action = useApiAction();
   const state = q.data?.joinStatus;
   const text =
     state === "PENDING"

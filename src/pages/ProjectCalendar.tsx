@@ -8,7 +8,7 @@ import { TaskForm } from "@/components/TaskForm";
 import { Btn } from "@/components/ds";
 import { useApiAction } from "@/hooks/useApiAction";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { calendarTemplates, PROJECT_TYPES } from "@/lib/projectTemplates";
+import { calendarTemplates, matchesProjectType, PROJECT_TYPES } from "@/lib/projectTemplates";
 
 const collapseTaskListWidth = 72;
 const minTaskListWidth = 192;
@@ -29,6 +29,7 @@ const field = "rounded border border-border bg-white px-2 py-1.5 text-sm";
 type Starts = Record<number, { start: string; due: string }>;
 type Drag = { id: number; edge: "move" | "start" | "end" };
 type Range = { start: string; end: string };
+type Settings = { task: Task | null; range: Range; error: string };
 
 function readStarts(key: string): Starts {
   try {
@@ -83,16 +84,21 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
       // Viewing the calendar does not require browser storage.
     }
   }, [storageKey, view]);
-  const setRange = (next: Range) => setView(current => ({ ...current, range: next }));
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [preview, setPreview] = useState<Range | null>(null);
   const recommendation = PROJECT_TYPES.find(type => type.value === recommendedType);
-  const [panel, setPanel] = useState<"task" | "template" | "settings" | null>(() => recommendation ? "template" : null);
+  const [panel, setPanel] = useState<"task" | "template" | Settings | null>(() => recommendation ? "template" : null);
+  const settings = typeof panel === "object" ? panel : null;
+  const editTask = settings?.task;
+  const preview = settings?.range;
+
+  function openSettings(next: Range, task: Task | null = null) {
+    if (task) setSelected(null);
+    setPanel({ task, range: next, error: "" });
+  }
+
   function closeTemplate() {
     setPanel(null);
     onRecommendationDismiss?.();
   }
-  const [settingsError, setSettingsError] = useState("");
   const [storageWarning, setStorageWarning] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [templateStart, setTemplateStart] = useState(() => {
@@ -131,11 +137,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   const templates = useApiQuery(loadTemplates);
   const choices = calendarTemplates(templates.data ?? []);
   const template = choices.find(item => item.template === templateName)
-    ?? choices.find(item => recommendation && (
-      item.template.toLowerCase() === recommendation.value ||
-      item.template === `local:${recommendation.value}` ||
-      item.name === recommendation.label
-    ))
+    ?? (recommendation && choices.find(item => matchesProjectType(item, recommendation)))
     ?? choices[0];
   const templateSpan = gap(templateStart, templateDue);
   const validTemplateRange = templateSpan >= 0 && templateSpan <= 92;
@@ -158,11 +160,11 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   const row = 44;
   const width = days.length * column;
   const chartHeight = Math.max(5, visible.length + 1) * row;
-  const dragDates = dropDay && dragItem ? datesForDrop(dropDay, dragItem) : undefined;
+  const dragTask = dragItem ? tasks?.find(task => task.id === dragItem.id) : undefined;
+  const dragDates = dropDay && dragItem && dragTask ? datesForDrop(dragTask, dropDay, dragItem.edge) : undefined;
   const dragFirst = dragDates ? days.findIndex(day => day >= dragDates.start && day <= dragDates.end) : -1;
   const dragLast = dragDates ? days.findLastIndex(day => day >= dragDates.start && day <= dragDates.end) : -1;
   const dragRow = scheduled.findIndex(({ task }) => task.id === dragItem?.id);
-  const dragTask = dragItem ? visible.find(task => task.id === dragItem.id) : undefined;
 
   function blockColor(task: Task) {
     const owner = members.findIndex(member => member.memberId === task.assignees[0]?.memberId);
@@ -201,7 +203,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
       } finally {
         setPendingSchedule(null);
       }
-    }, () => {});
+    });
   }
 
   function applyTemplate() {
@@ -258,20 +260,11 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
     setDropDay(null);
   }
 
-  function datesForDrop(date: string, item: Drag): Range | undefined {
-    const task = tasks?.find(candidate => candidate.id === item.id);
-    if (!task) return;
+  function datesForDrop(task: Task, date: string, edge: Drag["edge"]): Range {
     const previous = taskRange(task, starts);
-    if (item.edge === "start" && previous) return { start: date, end: previous.end };
-    if (item.edge === "end" && previous) return { start: previous.start, end: date };
+    if (edge === "start" && previous) return { start: date, end: previous.end };
+    if (edge === "end" && previous) return { start: previous.start, end: date };
     return { start: date, end: shift(date, previous ? gap(previous.start, previous.end) : 0) };
-  }
-
-  function place(date: string, item: Drag | null) {
-    if (!item) return;
-    const dates = datesForDrop(date, item);
-    const task = tasks?.find(candidate => candidate.id === item.id);
-    if (dates && task) save(task, dates);
   }
 
   function dateUnderPointer(event: DragEvent<HTMLDivElement>) {
@@ -279,8 +272,10 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
     return days[Math.floor((event.clientX - left) / column)];
   }
 
+  const periodLength = gap(range.start, range.end) + 1;
+
   function showPeriod(start: string, length: number) {
-    setRange({ start, end: shift(start, length - 1) });
+    setView(current => ({ ...current, range: { start, end: shift(start, length - 1) } }));
   }
 
   return (
@@ -394,23 +389,26 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
           )}
           <section className={`min-w-0 overflow-hidden rounded-b-xl lg:rounded-bl-none lg:rounded-tr-xl ${showTaskList ? "border-t border-border lg:border-t-0" : "rounded-t-xl lg:rounded-bl-xl"}`} aria-label="간트 달력">
             <div className={`flex flex-wrap items-center gap-2 px-3 pt-5 pb-3 ${showTaskList ? "" : "pl-12"}`}>
-              <Btn size="sm" aria-label="이전 기간" onClick={() => showPeriod(shift(range.start, -gap(range.start, range.end) - 1), gap(range.start, range.end) + 1)}>←</Btn>
+              <Btn size="sm" aria-label="이전 기간" onClick={() => showPeriod(shift(range.start, -periodLength), periodLength)}>←</Btn>
               <span className="text-sm font-medium tabular-nums">
                 {dragDates && dragFirst >= 0 ? `${dragDates.start} ~ ${dragDates.end}` : `${range.start} ~ ${range.end}`}
               </span>
-              <Btn size="sm" aria-label="다음 기간" onClick={() => showPeriod(shift(range.end, 1), gap(range.start, range.end) + 1)}>→</Btn>
-              <Btn size="sm" variant="ghost" onClick={() => showPeriod(today(), gap(range.start, range.end) + 1)}>오늘</Btn>
+              <Btn size="sm" aria-label="다음 기간" onClick={() => showPeriod(shift(range.end, 1), periodLength)}>→</Btn>
+              <Btn size="sm" variant="ghost" onClick={() => showPeriod(today(), periodLength)}>오늘</Btn>
               <div className="ml-auto flex flex-wrap gap-2">
                 <Btn size="sm" disabled={!canEdit} onClick={() => { setTemplateName(""); setPanel("template"); }}>템플릿 선택</Btn>
-                <Btn size="sm" onClick={() => { setEditTask(null); setPreview(range); setSettingsError(""); setPanel("settings"); }}>달력 설정</Btn>
+                <Btn size="sm" onClick={() => openSettings(range)}>달력 설정</Btn>
               </div>
             </div>
-            {panel === "settings" && preview && (
+            {settings && preview && (
               <form key={editTask?.id ?? "view"} aria-label={editTask ? "작업 일정 수정" : "달력 설정"} className="border-y border-border bg-slate-50/80 px-4 py-4" onSubmit={event => {
                 event.preventDefault();
                 const length = gap(preview.start, preview.end);
                 if (!Number.isFinite(length) || length < 0 || (!editTask && length > 92)) {
-                  setSettingsError(editTask ? "마감일은 시작일과 같거나 이후여야 합니다." : "시작일부터 종료일까지 최대 93일을 선택해주세요.");
+                  setPanel({
+                    ...settings,
+                    error: editTask ? "마감일은 시작일과 같거나 이후여야 합니다." : "시작일부터 종료일까지 최대 93일을 선택해주세요.",
+                  });
                   return;
                 }
                 if (editTask) save(editTask, preview);
@@ -434,12 +432,12 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                       <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
                         {editTask ? "작업 시작일" : "시작일"}
                         <input className={`${field} min-w-0 w-full text-foreground`} type="date" required value={preview.start}
-                          onChange={event => setPreview({ ...preview, start: event.target.value })} />
+                          onChange={event => setPanel({ ...settings, range: { ...preview, start: event.target.value } })} />
                       </label>
                       <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
                         {editTask ? "작업 마감일" : "종료일"}
                         <input className={`${field} min-w-0 w-full text-foreground`} type="date" required value={preview.end}
-                          onChange={event => setPreview({ ...preview, end: event.target.value })} />
+                          onChange={event => setPanel({ ...settings, range: { ...preview, end: event.target.value } })} />
                       </label>
                     </div>
                     {!editTask && (
@@ -449,10 +447,9 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                             className="h-7 px-2.5 aria-pressed:bg-slate-100 aria-pressed:text-foreground"
                             disabled={!Number.isFinite(stamp(preview.start))}
                             aria-pressed={gap(preview.start, preview.end) + 1 === length}
-                            onClick={() => {
-                              setPreview({ ...preview, end: shift(preview.start, length - 1) });
-                              setSettingsError("");
-                            }}>
+                            onClick={() => setPanel({
+                              ...settings, range: { ...preview, end: shift(preview.start, length - 1) }, error: "",
+                            })}>
                             {length === 30 ? "30일" : length / 7 + "주"}
                           </Btn>
                         ))}
@@ -481,7 +478,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                   )}
                 </div>
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
-                  {settingsError && <p className="mr-auto text-sm text-red-700" role="alert">{settingsError}</p>}
+                  {settings.error && <p className="mr-auto text-sm text-red-700" role="alert">{settings.error}</p>}
                   <Btn type="button" size="sm" variant="ghost" onClick={() => setPanel(null)}>취소</Btn>
                   <Btn type="submit" size="sm" variant="primary" disabled={Boolean(editTask) && !canEdit}>
                     {editTask ? "일정 저장" : "적용"}
@@ -489,7 +486,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                 </div>
               </form>
             )}
-            <ul className={`flex flex-wrap gap-2 px-3 pb-3 text-xs ${panel === "settings" ? "pt-3" : ""}`} aria-label="담당자 색상">
+            <ul className={`flex flex-wrap gap-2 px-3 pb-3 text-xs ${settings ? "pt-3" : ""}`} aria-label="담당자 색상">
               {members.map((member, index) => <li key={member.memberId} className={`rounded px-2 py-1 ${colors[index % colors.length]}`}>{member.nickname}</li>)}
               <li className="rounded bg-slate-100 px-2 py-1 text-slate-900">미배정</li>
             </ul>
@@ -499,17 +496,20 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
               <div style={{ width }}>
                 <div className="flex">
                   {days.map(day => <button key={day} type="button" style={{ width: column }} aria-label={day + "에 배치"}
-                    onClick={() => selected !== null && place(day, { id: selected, edge: "move" })}
+                    onClick={() => {
+                      const task = visible.find(item => item.id === selected);
+                      if (task) save(task, datesForDrop(task, day, "move"));
+                    }}
                     className={`shrink-0 border-r border-border px-1 py-2 text-xs ${day === deadline ? "bg-violet-100 font-semibold" : "bg-slate-50"}`}>
                     {dateLabel.format(stamp(day))}{day === deadline && <span className="block">최종 제출</span>}
                   </button>)}
                 </div>
                 <div className="relative" style={{ height: chartHeight }}
                   onDragOver={event => {
-                    if (!dragItem) return;
+                    if (!dragItem || !dragTask) return;
                     event.preventDefault();
                     const day = dateUnderPointer(event);
-                    const dates = day ? datesForDrop(day, dragItem) : undefined;
+                    const dates = day ? datesForDrop(dragTask, day, dragItem.edge) : undefined;
                     const valid = dates && dates.start <= dates.end;
                     event.dataTransfer.dropEffect = valid ? "move" : "none";
                     setDropDay(valid ? day : null);
@@ -520,10 +520,10 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                     }
                   }}
                   onDrop={event => {
-                    if (!dragItem) return;
+                    if (!dragItem || !dragTask) return;
                     event.preventDefault();
                     const day = dateUnderPointer(event);
-                    if (day) place(day, dragItem);
+                    if (day) save(dragTask, datesForDrop(dragTask, day, dragItem.edge));
                     clearDrag();
                   }}>
                   <div className="absolute inset-0 flex">
@@ -559,10 +559,10 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                     const description = `${task.title} · ${task.assignees.map(member => member.nickname).join(", ") || "미배정"} · ${dates.start} ~ ${dates.end}`;
                     return <div key={task.id} className={`group absolute z-10 hover:z-20 focus-within:z-20 flex h-8 items-center rounded-md ${dragFirst >= 0 && dragItem?.id === task.id ? "opacity-0" : ""} ${blockColor(task)}`}
                       style={{ top: index * row + 6, left: first * column + 8, width: (last - first + 1) * column - 16 }}>
-                      {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-r border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 시작일 조정"} title="끌어서 시작일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "start" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
+                      {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-r border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 시작일 조정"} title="끌어서 시작일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "start" })} onDragEnd={clearDrag} onClick={() => openSettings(dates, task)} />}
                       <Link to={demo ? `/task/t${task.id}` : `${base}/tasks/${task.id}`} state={{ fromCalendar: true }} aria-label={description}
                         className="min-w-0 flex-1 truncate px-1.5 text-xs font-medium hover:underline" draggable={false}>{task.title}</Link>
-                      {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-l border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 마감일 조정"} title="끌어서 마감일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "end" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
+                      {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-l border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 마감일 조정"} title="끌어서 마감일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "end" })} onDragEnd={clearDrag} onClick={() => openSettings(dates, task)} />}
                       <span className={`pointer-events-none absolute top-full z-10 hidden w-max max-w-56 whitespace-normal rounded bg-slate-900 px-2 py-1 text-xs text-white shadow group-hover:block group-focus-within:block ${last >= days.length - 2 && first > 1 ? "right-0" : "left-0"}`} aria-hidden="true">{description}</span>
                     </div>;
                   })}

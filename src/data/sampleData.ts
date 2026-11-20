@@ -1,22 +1,6 @@
 // Shared sample data for Risense
 
-import type { Role, RiskLevel, TeamMember, Task, Project } from '@/types';
-
-export function getRiskLevel(score: number): RiskLevel {
-  if (score <= 24) return '안정';
-  if (score <= 49) return '관찰';
-  if (score <= 69) return '주의';
-  if (score <= 84) return '위험';
-  return '심각';
-}
-
-export function getRiskColor(score: number) {
-  if (score <= 24) return { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' };
-  if (score <= 49) return { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', dot: 'bg-sky-500' };
-  if (score <= 69) return { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' };
-  if (score <= 84) return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', dot: 'bg-orange-500' };
-  return { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', dot: 'bg-red-500' };
-}
+import type { TeamMember, Task, Project } from '@/types';
 
 export const sampleMembers: TeamMember[] = [
   {
@@ -216,33 +200,3 @@ export const sampleProject: Project = {
   checkinHistory: [],
   status: '진행 중',
 };
-
-export const projectList = [
-  {
-    id: 'p1',
-    title: 'HCI 기말 발표 과제',
-    className: '인간컴퓨터상호작용',
-    deadline: '2024-06-13',
-    myRole: '팀장' as Role,
-    riskScore: 71,
-    status: '진행 중' as const,
-  },
-  {
-    id: 'p2',
-    title: '캡스톤 디자인',
-    className: '졸업작품 세미나',
-    deadline: '2024-06-20',
-    myRole: '팀원' as Role,
-    riskScore: 38,
-    status: '진행 중' as const,
-  },
-  {
-    id: 'p3',
-    title: '마케팅 사례분석',
-    className: '마케팅원론',
-    deadline: '2024-05-31',
-    myRole: '공동 팀장' as Role,
-    riskScore: 10,
-    status: '완료' as const,
-  },
-];

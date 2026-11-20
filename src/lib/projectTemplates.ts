@@ -9,12 +9,17 @@ export const PROJECT_TYPES = [
   { value: 'other', label: '기타', tasks: ['목표와 역할 정하기', '자료 준비', '결과물 제작', '최종 검토', '최종 제출'] },
 ] as const;
 
+type ProjectType = (typeof PROJECT_TYPES)[number];
+
+export function matchesProjectType(template: TaskTemplate, type: ProjectType) {
+  const key = template.template.toLowerCase();
+  return key === type.value || key === `local:${type.value}` || template.name === type.label;
+}
+
 export function calendarTemplates(available: TaskTemplate[]) {
   return [
     ...available,
-    ...PROJECT_TYPES.filter(type => !available.some(template =>
-      template.template.toLowerCase() === type.value || template.name === type.label,
-    )).map((type): TaskTemplate => ({
+    ...PROJECT_TYPES.filter(type => !available.some(template => matchesProjectType(template, type))).map((type): TaskTemplate => ({
       template: `local:${type.value}`,
       name: type.label,
       tasks: type.tasks.map((title, index) => ({ title, size: index === 0 || index === type.tasks.length - 1 ? 'S' : 'M' })),
