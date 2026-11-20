@@ -7,52 +7,6 @@ import { cn } from '@/lib/utils';
 import { getRiskInfo, type BadgeVariant } from '@/lib/risk';
 import { useId, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react';
 
-// ─── Layout ─────────────────────────────────────────────────────────────────
-
-export function PageShell({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-screen bg-white text-[#111827]">
-      {children}
-    </div>
-  );
-}
-
-export function PageHeader({ children }: { children: ReactNode }) {
-  return (
-    <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
-      {children}
-    </header>
-  );
-}
-
-export function PageContent({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <main className={`max-w-6xl mx-auto px-6 py-6 ${className}`}>
-      {children}
-    </main>
-  );
-}
-
-export function MobileShell({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-screen bg-white flex justify-center">
-      <div className="w-full max-w-[390px] min-h-screen bg-white">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Typography ──────────────────────────────────────────────────────────────
-
-export function PageTitle({ children }: { children: ReactNode }) {
-  return <h1 className="text-[15px] font-semibold text-[#111827] tracking-tight">{children}</h1>;
-}
-
-export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-[13px] font-semibold text-[#374151] mb-3">{children}</h2>;
-}
-
 export function Label({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <p className={`text-[11px] font-medium text-[#6B7280] uppercase tracking-wide ${className}`}>{children}</p>;
 }
@@ -195,18 +149,6 @@ export function RiskScore({ score }: { score: number | null }) {
   );
 }
 
-export function RiskDot({ score }: { score: number }) {
-  const colors: Record<string, string> = {
-    safe: 'bg-[#16A34A]',
-    watch: 'bg-[#2563EB]',
-    caution: 'bg-[#D97706]',
-    danger: 'bg-[#EA580C]',
-    critical: 'bg-[#DC2626]',
-  };
-  const { level } = getRiskInfo(score);
-  return <span className={`inline-block w-2 h-2 rounded-full ${colors[level]}`} />;
-}
-
 // ─── Role Badge ──────────────────────────────────────────────────────────────
 
 export function RoleBadgeDs({ role }: { role: string }) {
@@ -256,18 +198,6 @@ export function ProgressBar({ value, className = '' }: { value: number; classNam
 
 export function Divider({ className = '' }: { className?: string }) {
   return <div className={`border-t border-[#E5E7EB] ${className}`} />;
-}
-
-// ─── Empty State ─────────────────────────────────────────────────────────────
-
-export function EmptyMsg({ title, desc, action }: { title: string; desc?: string; action?: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <p className="text-[13px] font-medium text-[#374151] mb-1">{title}</p>
-      {desc && <p className="text-[12px] text-[#9CA3AF] mb-4">{desc}</p>}
-      {action}
-    </div>
-  );
 }
 
 // ─── Alert Banner ────────────────────────────────────────────────────────────

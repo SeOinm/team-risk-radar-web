@@ -36,7 +36,6 @@ export function Dashboard() {
           </div>
           <div className="flex items-center gap-1.5">
             <Btn variant="ghost" size="sm" onClick={() => navigate('/task-board')}>작업 보드</Btn>
-            <Btn variant="ghost" size="sm" onClick={() => navigate('/timeline')}>타임라인</Btn>
             <Btn variant="ghost" size="sm" onClick={() => navigate('/checkin-status')}>체크인 현황</Btn>
             <Btn variant="ghost" size="sm" onClick={() => navigate('/members')}>팀원 관리</Btn>
             <Btn variant="ghost" size="sm" onClick={() => navigate('/report')}>리포트</Btn>

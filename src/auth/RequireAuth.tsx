@@ -1,16 +1,19 @@
-import { Navigate, Outlet, useLocation } from 'react-router';
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { matchPath, Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from './context';
+import { ProjectLoadingScreen } from "@/components/ProjectLoader";
 import { Btn } from '@/components/ds';
 
 export function RequireAuth() {
   const { status, error, retry, logout } = useAuth();
   const location = useLocation();
-  if (status === 'checking')
-    return (
-      <p role="status" className="p-8 text-sm text-[#6B7280]">
-        로그인 정보를 확인하고 있습니다…
-      </p>
-    );
+  if (status === 'checking') {
+    const isProjectBoard = ['/projects/:projectId', '/projects/:projectId/tasks', '/projects/:projectId/calendar']
+      .some(path => matchPath(path, location.pathname));
+    return isProjectBoard
+      ? <ProjectLoadingScreen />
+      : <LoadingSkeleton label="로그인 정보 확인" className="mx-auto max-w-5xl px-6 py-8" />;
+  }
   if (status === 'error')
     return (
       <div className="p-8 space-y-3">

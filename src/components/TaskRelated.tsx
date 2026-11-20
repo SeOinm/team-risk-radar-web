@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import {
@@ -85,7 +86,7 @@ export function TaskRelations({
     <>
       <Panel title="선행 작업">
         {q.loading ? (
-          <p>조회 중…</p>
+          <LoadingSkeleton label="선행 작업" rows={2} />
         ) : q.error ? (
           <>
             <p role="alert">{q.error}</p>
@@ -178,7 +179,7 @@ export function TaskRelations({
       </Panel>
       <Panel title="후속 작업">
         {q.loading ? (
-          <p>조회 중…</p>
+          <LoadingSkeleton label="후속 작업" rows={2} />
         ) : q.error ? (
           <p>작업 관계를 불러오지 못했습니다.</p>
         ) : q.data?.successors.length ? (
@@ -233,7 +234,7 @@ export function TaskArtifacts({
   return (
     <Panel title="산출물 링크">
       {q.loading ? (
-        <p>조회 중…</p>
+        <LoadingSkeleton label="산출물 링크" rows={2} />
       ) : q.error ? (
         <>
           <p role="alert">{q.error}</p>

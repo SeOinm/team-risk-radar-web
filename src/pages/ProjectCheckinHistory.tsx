@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { checkinStatusLabel } from "@/lib/checkinStatus";
 import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router";
@@ -27,7 +28,7 @@ function History({ project }: { project: ProjectResponse }) {
   return (
     <div className="min-h-screen bg-white">
       <header className="h-12 px-4 flex items-center gap-3 border-b border-border">
-        <Link to={`/projects/${project.id}`} className="truncate text-sm">
+        <Link to={`/projects/${project.id}/tasks`} className="truncate text-sm">
           〈 {project.title}
         </Link>
         <Link to="/projects" className="ml-auto shrink-0 text-sm">
@@ -42,7 +43,7 @@ function History({ project }: { project: ProjectResponse }) {
           </Btn>
         </div>
         {q.loading ? (
-          <p role="status">기록을 불러오고 있습니다…</p>
+          <LoadingSkeleton label="체크인 기록" className="max-w-lg py-3" />
         ) : q.error ? (
           <>
             <p role="alert">{q.error}</p>

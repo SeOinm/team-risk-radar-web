@@ -1,39 +1,90 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { moveTask } from "@/lib/taskOrder";
 import { ApiError } from "@/api/client";
-import { Plus, ChevronDown, ChevronLeft, SlidersHorizontal, GripVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Plus, ChevronDown, ClipboardCheck, Ellipsis, Info, SlidersHorizontal, GripVertical, Users } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator,
+  DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
+import { ProjectCalendarPanel, type CalendarLinks } from "@/pages/ProjectCalendar";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
+  Badge,
   Btn,
+  NavBack,
+  RoleBadgeDs,
   Input,
   RiskScore,
   SizeBadgeDs,
   ProgressBar,
 } from "@/components/ds";
-import { tasksApi, TASK_STATUS, type Task } from "@/api/tasks";
-import type { ProjectResponse } from "@/api/projects";
+import { tasksApi, TASK_STATUS, type Task, type TaskTemplate } from "@/api/tasks";
+import { DAY_LABELS, ROLE_LABELS, STATUS_LABELS, type ProjectResponse } from "@/api/projects";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { PROJECT_TYPES } from "@/lib/projectTemplates";
 import { useApiAction } from "@/hooks/useApiAction";
+export function ProjectTasksRedirect() {
+  const { projectId } = useParams();
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: `/projects/${projectId}/tasks`, search, hash }} replace />;
+}
+
 export function ProjectTasks() {
   const { projectId = "" } = useParams();
+  return <ProjectTaskBoard key={projectId} projectId={projectId} />;
+}
+
+function ProjectTaskBoard({ projectId }: { projectId: string }) {
+  const [searchParams] = useSearchParams();
+  const recommendedType = searchParams.get("template");
+  const hasRecommendation = PROJECT_TYPES.some(type => type.value === recommendedType);
+  const [templatesRequested, setTemplatesRequested] = useState(hasRecommendation);
+  const load = useCallback((signal: AbortSignal) => tasksApi.list(projectId, signal), [projectId]);
+  const loadTemplates = useCallback(
+    (signal: AbortSignal) => templatesRequested ? tasksApi.templates(projectId, signal) : Promise.resolve(null),
+    [projectId, templatesRequested],
+  );
+  const q = useApiQuery(load, true);
+  const taskIds = q.data?.filter(task => task.status !== "CANCELLED").map(task => task.id).sort((a, b) => a - b).join(",") ?? "";
+  const loadLinks = useCallback((signal: AbortSignal) => Promise.all(
+    (taskIds ? taskIds.split(",").map(Number) : []).map(async taskId => ({
+      taskId,
+      prerequisites: await tasksApi.prerequisites(projectId, taskId, signal),
+    })),
+  ), [projectId, taskIds]);
+  const links = useApiQuery(loadLinks, true, q.data !== null);
+  const templates = useApiQuery(loadTemplates);
+  const pending = q.initialLoading || (taskIds !== "" && links.initialLoading) ||
+    (hasRecommendation && templates.initialLoading);
   return (
-    <ProjectLoader key={projectId} id={projectId}>
-      {(p) => <TaskBoardData project={p} />}
+    <ProjectLoader id={projectId} pending={pending}>
+      {project => (
+        <TaskBoardData project={project} q={q} links={links}
+          templates={{ ...templates, loading: templates.loading || (!templates.data && !templates.error) }}
+          requestTemplates={() => setTemplatesRequested(true)} />
+      )}
     </ProjectLoader>
   );
 }
-function TaskBoardData({ project }: { project: ProjectResponse }) {
-  const load = useCallback(
-    (signal: AbortSignal) => tasksApi.list(project.id, signal),
-    [project.id],
-  );
-  const q = useApiQuery(load);
+
+function TaskBoardData({ project, q, links, templates, requestTemplates }: {
+  project: ProjectResponse;
+  q: ReturnType<typeof useApiQuery<Task[]>>;
+  links: CalendarLinks;
+  templates: ReturnType<typeof useApiQuery<TaskTemplate[]>>;
+  requestTemplates: () => void;
+}) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const recommendedType = searchParams.get("template");
   const action = useApiAction();
   const navigate = useNavigate();
+  const projectPath = `/projects/${project.id}`;
+  const canManage = project.myRole !== "MEMBER";
   const [form, setForm] = useState<"create" | "templates" | null>(null);
   const [filter, setFilter] = useState("전체");
   const [sort, setSort] = useState("기본 순서");
@@ -41,7 +92,7 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   const writable =
     project.myRole !== "MEMBER" &&
     project.status === "IN_PROGRESS" &&
-    !action.locked;
+    !action.locked && !q.loading;
   const rows = (q.data ?? [])
     .filter((t) => {
       if (filter === "취소") return t.status === "CANCELLED";
@@ -84,20 +135,18 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
       } catch (error) {
           saveError = error;
         }
-        {
         // Read back partial saves without replacing the table with a loading screen.
-        try {
-          const saved = await tasksApi.list(project.id);
-          q.updateData(() => saved);
-        } catch (error) {
-          q.updateData(() => snapshot);
-          if (error instanceof ApiError && error.status === 401) throw error;
-          throw new ApiError(409, 'ORDER_UNCONFIRMED', '저장된 순서를 확인하지 못했습니다. 이전 화면으로 복원했습니다. 최신 상태를 다시 불러와주세요.');
-        }
+      try {
+        const saved = await tasksApi.list(project.id);
+        q.updateData(() => saved);
+      } catch (error) {
+        q.updateData(() => snapshot);
+        if (error instanceof ApiError && error.status === 401) throw error;
+        throw new ApiError(409, 'ORDER_UNCONFIRMED', '저장된 순서를 확인하지 못했습니다. 이전 화면으로 복원했습니다. 최신 상태를 다시 불러와주세요.');
       }
 
-        if (saveError) throw saveError;
-    }, () => {});
+      if (saveError) throw saveError;
+    });
   };
   const refresh = () => {
     setForm(null);
@@ -105,20 +154,83 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   };
   return (
     <div className="min-h-screen bg-white">
-      <header className="h-12 flex items-center border-b border-border px-4">
-        <Link
-          to={`/projects/${project.id}`}
-          aria-label={`${project.title} 프로젝트 상세로 이동`}
-          title={project.title}
-          className="inline-flex min-w-0 max-w-full items-center gap-2 rounded text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ChevronLeft aria-hidden="true" className="h-4 w-4 shrink-0" />
-          <span className="truncate">{project.title}</span>
-        </Link>
+      <header className="flex h-12 items-center border-b border-border">
+        <NavBack label="목록" onClick={() => navigate("/projects")} />
+        <span className="text-sm font-semibold">작업 보드</span>
       </header>
-      <main className="max-w-6xl mx-auto p-6 space-y-4">
-        <h1 className="text-lg font-semibold">작업 보드</h1>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <main className="mx-auto max-w-6xl space-y-6 px-6 py-4 sm:py-6">
+        <section aria-labelledby="project-heading">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1 id="project-heading" className="min-w-0 break-words text-lg font-semibold">{project.title}</h1>
+              <RoleBadgeDs role={ROLE_LABELS[project.myRole]} />
+              <Badge variant={project.status === "DONE" ? "safe" : "default"}>{STATUS_LABELS[project.status]}</Badge>
+            </div>
+            <div className="shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Btn variant="ghost" aria-label="프로젝트 메뉴" className="size-8 px-0 data-[state=open]:bg-muted">
+                    <Ellipsis aria-hidden="true" className="size-5" />
+                  </Btn>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={6} className="w-40">
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <ClipboardCheck aria-hidden="true" className="size-4 text-muted-foreground" />체크인
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent sideOffset={4} className="min-w-36">
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/checkin`}>체크인 작성</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/checkin-history`}>내 체크인 기록</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/checkin-status`}>팀 체크인 현황</Link></DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <Users aria-hidden="true" className="size-4 text-muted-foreground" />
+                      {canManage && project.status !== "CLOSED" ? "팀·설정" : "팀원"}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent sideOffset={4} className="min-w-36">
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/members`}>팀원 {canManage ? "관리" : "목록"}</Link></DropdownMenuItem>
+                        {canManage && project.status === "IN_PROGRESS" &&
+                          <DropdownMenuItem asChild><Link to={`${projectPath}/invite`}>팀원 초대</Link></DropdownMenuItem>}
+                        {canManage && project.status !== "CLOSED" &&
+                          <DropdownMenuItem asChild><Link to={`${projectPath}/settings`}>프로젝트 설정</Link></DropdownMenuItem>}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <Info aria-hidden="true" className="size-4 text-muted-foreground" />프로젝트 정보
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent sideOffset={4} className="min-w-52">
+                        <dl className="grid gap-2 p-2 text-xs">
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">최종 마감일</dt><dd>{project.deadline}</dd></div>
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">체크인 주기</dt><dd>주 {project.checkinFrequency}회</dd></div>
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">체크인 요일</dt><dd>{project.checkinDays.map(day => DAY_LABELS[day]).join(" · ")}</dd></div>
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">체크인 마감 시간</dt><dd>{project.checkinTime.slice(0, 5)}</dd></div>
+                        </dl>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </section>
+        <ProjectCalendarPanel project={project} query={q} links={links} templates={templates} requestTemplates={requestTemplates} recommendedType={recommendedType} onRecommendationDismiss={() => {
+          if (!recommendedType) return;
+          setSearchParams(current => {
+            const next = new URLSearchParams(current);
+            next.delete("template");
+            return next;
+          }, { replace: true });
+        }} />
+        <div className="flex items-center justify-between gap-3 flex-wrap border-t border-border pt-4">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="inline-flex items-center rounded-md bg-muted p-1" aria-label="작업 필터">
               {["전체", "미배정", "막힘", "취소"].map((f) => (
@@ -140,6 +252,14 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          <div className="relative">
+            <select aria-label="작업 정렬" value={sort} onChange={(e) => setSort(e.target.value)}
+              className="h-8 cursor-pointer appearance-none rounded-md border border-border bg-white pl-3 pr-8 text-xs font-medium text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {["기본 순서", "마감일", "진행률"].map((s) => <option key={s} value={s}>{s}</option>)}
+              <option disabled>리스크 · 연동 보류</option>
+            </select>
+            <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          </div>
           {project.myRole !== "MEMBER" && (
             <div className="flex items-center gap-2 ml-auto">
               <Btn variant="ghost" disabled={!writable || action.busy} onClick={() => setForm("templates")}>템플릿으로 추가</Btn>
@@ -148,20 +268,6 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
               </Btn>
             </div>
           )}
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-muted-foreground">{q.loading ? "불러오는 중…" : q.error ? "" : `작업 ${rows.length}개`}</span>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            정렬
-            <span className="relative">
-              <select aria-label="작업 정렬" value={sort} onChange={(e) => setSort(e.target.value)}
-                className="appearance-none bg-transparent h-8 pl-2 pr-6 text-[12px] text-foreground rounded outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {["기본 순서", "마감일", "진행률"].map((s) => <option key={s} value={s}>{s}</option>)}
-                <option disabled>리스크 · 연동 보류</option>
-              </select>
-              <ChevronDown aria-hidden="true" className="w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </span>
-          </label>
         </div>
         {project.status !== "IN_PROGRESS" && (
           <p>완료·종료된 프로젝트는 작업을 변경할 수 없습니다.</p>
@@ -199,16 +305,14 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
             )}
           </section>
         )}
-        {q.loading ? (
-          <p role="status">작업을 불러오고 있습니다…</p>
-        ) : q.error ? (
+        {q.error ? (
           <>
             <p role="alert">{q.error}</p>
             <Btn onClick={q.retry}>다시 시도</Btn>
           </>
         ) : (
           <div className="border border-border rounded overflow-x-auto">
-            <table ref={tableRef} className="w-full text-sm">
+            <table ref={tableRef} className="w-full text-sm" aria-busy={q.loading}>
               <thead className="bg-muted">
                 <tr>
                   <th className="w-10"><span className="sr-only">순서 변경</span></th>
@@ -309,7 +413,7 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
                     </td>
                   </tr>
                 ))}
-                {!rows.length && (
+                {!q.loading && !rows.length && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center">
                       표시할 작업이 없습니다.
@@ -354,7 +458,7 @@ function Templates({
   return (
     <div className="space-y-5">
       {q.loading ? (
-        <p role="status">템플릿 로딩 중…</p>
+        <LoadingSkeleton label="작업 템플릿" rows={2} />
       ) : q.error ? (
         <div className="space-y-2">
           <p role="alert">{q.error}</p>

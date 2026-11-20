@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -5,7 +6,7 @@ import { Btn } from "@/components/ds";
 import { teamApi, type Preview } from "@/api/team";
 import { useAuth } from "@/auth/context";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { useTeamAction } from "@/hooks/useTeamAction";
+import { useApiAction } from "@/hooks/useApiAction";
 export function InviteJoin({ token }: { token: string }) {
   const load = useCallback(
     (signal: AbortSignal) => teamApi.preview(token, signal),
@@ -20,7 +21,7 @@ export function InviteJoin({ token }: { token: string }) {
       <main className="w-full max-w-[390px] px-4 py-8 space-y-5">
         <BrandLogo />
         {q.loading ? (
-          <p role="status">초대 링크를 확인하고 있습니다…</p>
+          <LoadingSkeleton label="초대 링크 확인" />
         ) : q.error ? (
           <>
             <p role="alert">{q.error}</p>
@@ -39,7 +40,7 @@ export function InviteJoin({ token }: { token: string }) {
                 </p>
               </section>
               {status === "checking" ? (
-                <p role="status">로그인 확인 중…</p>
+                <LoadingSkeleton label="로그인 확인" rows={2} />
               ) : status === "authenticated" ? (
                 <JoinActions key={token} token={token} preview={q.data} />
               ) : (
@@ -68,7 +69,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
     [preview.projectId],
   );
   const q = useApiQuery(load);
-  const action = useTeamAction();
+  const action = useApiAction();
   const state = q.data?.joinStatus;
   const text =
     state === "PENDING"
@@ -81,7 +82,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
   return (
     <section className="space-y-3">
       {q.loading ? (
-        <p role="status">가입 상태를 확인하고 있습니다…</p>
+        <LoadingSkeleton label="가입 상태 확인" rows={2} />
       ) : q.error ? (
         <>
           <p role="alert">{q.error}</p>
@@ -94,7 +95,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
             <Btn
               variant="primary"
               onClick={() =>
-                navigate(`/projects/${preview.projectId}`, { replace: true })
+                navigate(`/projects/${preview.projectId}/tasks`, { replace: true })
               }
             >
               프로젝트로 이동

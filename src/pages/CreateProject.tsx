@@ -3,18 +3,10 @@ import { projectsApi, DAY_LABELS, type CheckinDay } from '@/api/projects';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { useNavigate } from 'react-router';
+import { PROJECT_TYPES } from '@/lib/projectTemplates';
 import { Btn, Input, NavBack } from '@/components/ds';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
-
-const PROJECT_TYPES = [
-  { value: 'presentation', label: '발표' },
-  { value: 'report', label: '보고서' },
-  { value: 'development', label: '개발' },
-  { value: 'design', label: '디자인·기획' },
-  { value: 'research', label: '조사·실험' },
-  { value: 'other', label: '기타' },
-];
 
 export function CreateProject() {
   const navigate = useNavigate();
@@ -49,7 +41,7 @@ export function CreateProject() {
         checkinFrequency: formData.checkinFrequency,
         checkinDays: (Object.keys(DAY_LABELS) as CheckinDay[]).filter(day => formData.checkinDays.includes(DAY_LABELS[day])),
       });
-      navigate(`/projects/${project.id}`, { replace: true });
+      navigate(`/projects/${project.id}/tasks?template=${formData.projectType}#calendar`, { replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) { logout(); return; }
       setError(error instanceof Error ? error.message : '프로젝트를 만들지 못했습니다.');
@@ -121,7 +113,7 @@ export function CreateProject() {
               <span className="text-[12px] font-semibold text-[#374151]">프로젝트 유형</span>
             </div>
             <div className="px-5 py-4">
-              <p className="text-[12px] text-muted-foreground mb-3">유형은 선택할 수 있지만 아직 서버에 저장되지 않습니다.</p>
+              <p className="text-[12px] text-muted-foreground mb-3">유형과 제출 마감일에 맞는 작업·일정 초안을 프로젝트 생성 후 확인할 수 있습니다.</p>
               <div className="grid grid-cols-3 gap-2">
                 {PROJECT_TYPES.map(type => (
                   <button

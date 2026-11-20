@@ -8,7 +8,6 @@ const NAV_LINKS = [
   { label: '대시보드', path: '/dashboard' },
   { label: '작업 보드', path: '/task-board' },
   { label: '체크인 현황', path: '/checkin-status' },
-  { label: '타임라인', path: '/timeline' },
   { label: '팀원 체크인', path: '/checkin' },
   { label: '리포트', path: '/report' },
 ];

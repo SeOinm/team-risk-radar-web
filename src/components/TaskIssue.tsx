@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useState } from "react";
 import { checkinOverviewApi } from "@/api/checkinOverview";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -37,7 +38,7 @@ export function TaskIssue({
       </h2>
       <div className="p-4 space-y-3">
         {q.loading ? (
-          <p>조회 중…</p>
+          <LoadingSkeleton label="작업 이슈" rows={2} />
         ) : q.error ? (
           <>
             <p role="alert">{q.error}</p>

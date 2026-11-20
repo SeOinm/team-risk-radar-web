@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
@@ -6,7 +7,7 @@ import { Btn, NavBack, RoleBadgeDs, AlertBanner } from "@/components/ds";
 import { projectsApi, ROLE_LABELS, type ProjectResponse } from "@/api/projects";
 import { teamApi, type Member, type Role } from "@/api/team";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { useTeamAction } from "@/hooks/useTeamAction";
+import { useApiAction } from "@/hooks/useApiAction";
 import { useAuth } from "@/auth/context";
 
 export function ProjectTeam({ inviteOnly = false }: { inviteOnly?: boolean }) {
@@ -49,7 +50,7 @@ function TeamView({
     [project.id],
   );
   const q = useApiQuery(load);
-  const action = useTeamAction();
+  const action = useApiAction();
   const [confirmation, setConfirmation] = useState<{
     member: Member;
     kind: "remove" | "role" | "reject";
@@ -72,7 +73,7 @@ function TeamView({
   return (
     <div className="min-h-screen bg-white">
       <header className="h-12 flex items-center border-b border-border">
-        <NavBack fallback={`/projects/${project.id}`} />
+        <NavBack fallback={`/projects/${project.id}/tasks`} />
         <span className="text-sm font-semibold">
           {inviteOnly ? "팀원 초대" : "팀원 관리"}
         </span>
@@ -105,7 +106,7 @@ function TeamView({
         {action.notice && <p role="status">{action.notice}</p>}
         {action.locked && <Btn onClick={reload}>최신 상태 불러오기</Btn>}
         {q.loading ? (
-          <p role="status">팀원을 불러오고 있습니다…</p>
+          <LoadingSkeleton label="팀원 목록" className="max-w-lg py-3" />
         ) : q.error ? (
           <div>
             <p role="alert">{q.error}</p>
@@ -242,8 +243,8 @@ function TeamView({
             </section>
           </>
         )}
-        <Btn onClick={() => navigate(`/projects/${project.id}`)}>
-          프로젝트 상세로 이동
+        <Btn onClick={() => navigate(`/projects/${project.id}/tasks`)}>
+          작업 보드로 이동
         </Btn>
       </main>
       {confirmation && (

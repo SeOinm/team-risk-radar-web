@@ -8,7 +8,7 @@ export function useApiAction() {
   const [error, setError] = useState("");
   const [locked, setLocked] = useState(false);
   const [notice, setNotice] = useState("");
-  async function run(action: () => Promise<unknown>, refresh: () => void) {
+  async function run(action: () => Promise<unknown>, refresh?: () => void) {
     if (inFlight.current || locked) return;
     inFlight.current = true;
     setBusy(true);
@@ -17,7 +17,7 @@ export function useApiAction() {
     try {
       await action();
       setNotice("처리가 완료되었습니다.");
-      refresh();
+      refresh?.();
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) logout();
       else {

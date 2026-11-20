@@ -1,8 +1,9 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useEffect, useState } from "react";
 import { teamApi } from "@/api/team";
 import type { ProjectResponse } from "@/api/projects";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { useTeamAction } from "@/hooks/useTeamAction";
+import { useApiAction } from "@/hooks/useApiAction";
 import { Btn } from "@/components/ds";
 export function InviteLinkPanel({
   project,
@@ -16,7 +17,7 @@ export function InviteLinkPanel({
     [project.id],
   );
   const query = useApiQuery(load);
-  const action = useTeamAction();
+  const action = useApiAction();
   const [confirm, setConfirm] = useState<"issue" | "revoke" | null>(null);
   const [copyMessage, setCopyMessage] = useState("");
   const link = query.data;
@@ -50,7 +51,7 @@ export function InviteLinkPanel({
       </div>
       <div className="p-5 space-y-3">
         {query.loading ? (
-          <p role="status">초대 링크를 불러오고 있습니다…</p>
+          <LoadingSkeleton label="초대 링크" rows={2} />
         ) : query.error ? (
           <>
             <p role="alert">{query.error}</p>

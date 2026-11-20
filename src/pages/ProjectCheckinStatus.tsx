@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { checkinStatusLabel } from "@/lib/checkinStatus";
 import { CheckinSubmissionView } from "@/components/CheckinSubmissionView";
 import { useCallback } from "react";
@@ -53,7 +54,7 @@ function Overview({ project }: { project: ProjectResponse }) {
   return (
     <div className="min-h-screen bg-white">
       <header className="h-12 flex items-center gap-3 px-4 border-b border-border">
-        <Link to={`/projects/${project.id}`} className="truncate text-sm">
+        <Link to={`/projects/${project.id}/tasks`} className="truncate text-sm">
           〈 {project.title}
         </Link>
         <Link to="/projects" className="ml-auto shrink-0 text-sm">
@@ -68,7 +69,7 @@ function Overview({ project }: { project: ProjectResponse }) {
           </Btn>
         </div>
         {q.loading ? (
-          <p>현황을 불러오고 있습니다…</p>
+          <LoadingSkeleton label="팀 체크인 현황" className="max-w-lg py-3" />
         ) : q.error ? (
           <p role="alert">{q.error}</p>
         ) : (

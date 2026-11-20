@@ -1,13 +1,45 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AlertTriangle } from 'lucide-react';
-import { sampleTasks, sampleMembers } from '@/data/sampleData';
+import type { Task } from '@/api/tasks';
+import { ProjectCalendarPanel } from '@/pages/ProjectCalendar';
+import { sampleTasks, sampleMembers, sampleProject } from '@/data/sampleData';
 import { Btn, RiskScore, SizeBadgeDs, StatusChip, ProgressBar, FilterTabs, NavBack } from '@/components/ds';
 
 type SortKey = '마감일' | '진행률' | '리스크';
 type FilterKey = '전체' | '미배정' | '막힘' | '지연' | '마감 임박' | '완료 근거 부족' | '취소';
 
 const memberMap = Object.fromEntries(sampleMembers.map(m => [m.id, m]));
+
+const taskId = (id: string) => Number(id.slice(1));
+const demoProject = { id: 0, deadline: sampleProject.deadline, status: 'IN_PROGRESS', myRole: 'MEMBER' } as const;
+const demoStartDates: Record<string, string> = {
+  t1: '2024-05-13', t2: '2024-05-16', t3: '2024-05-29', t4: '2024-06-06',
+  t5: '2024-06-07', t6: '2024-06-10', t7: '2024-06-13',
+};
+const demoStatuses = { '진행 전': 'TODO', '진행 중': 'IN_PROGRESS', '막힘': 'BLOCKED', '완료': 'DONE', '취소': 'CANCELLED' } as const;
+const demoTasks: Task[] = sampleTasks.map((task, index) => ({
+  id: taskId(task.id),
+  projectId: demoProject.id,
+  title: task.title,
+  size: task.size,
+  dueDate: task.dueDate,
+  status: task.cancelled ? 'CANCELLED' : demoStatuses[task.status],
+  progress: task.progress,
+  sortOrder: index,
+  assignees: task.assignees.map(id => ({ memberId: taskId(id), nickname: memberMap[id].name, assignedAt: '' })),
+  updatedAt: '',
+}));
+const demoCalendar = {
+  starts: Object.fromEntries(sampleTasks.map(task => [
+    taskId(task.id), { start: demoStartDates[task.id] ?? task.dueDate, due: task.dueDate },
+  ])),
+  links: sampleTasks.map(task => ({
+    taskId: taskId(task.id),
+    prerequisites: task.prerequisiteIds.map(id => ({ taskId: taskId(id) })),
+  })),
+};
+const demoQuery = { data: demoTasks, loading: false, error: '', retry() {}, updateData() {} };
 
 export function TaskBoard() {
   const navigate = useNavigate();
@@ -56,6 +88,9 @@ export function TaskBoard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-5">
+        <div className="mb-6">
+          <ProjectCalendarPanel project={demoProject} query={demoQuery} demo={demoCalendar} />
+        </div>
         {/* Filters + sort */}
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
