@@ -119,10 +119,10 @@ function array<T>(v: unknown, parse: (item: unknown) => T) {
   return v.map(parse);
 }
 export function createTasksApi(request = apiRequest) {
-  const base = (p: number) => `/projects/${id(p)}/tasks`;
-  const path = (p: number, t: number | string) => `${base(p)}/${id(t)}`;
+  const base = (p: number | string) => `/projects/${id(p)}/tasks`;
+  const path = (p: number | string, t: number | string) => `${base(p)}/${id(t)}`;
   return {
-    async list(p: number, signal?: AbortSignal) {
+    async list(p: number | string, signal?: AbortSignal) {
       return array(await request(base(p), { signal }), task);
     },
     async detail(p: number, t: string, signal?: AbortSignal) {
@@ -160,7 +160,7 @@ export function createTasksApi(request = apiRequest) {
         },
       );
     },
-    async templates(p: number, signal?: AbortSignal) {
+    async templates(p: number | string, signal?: AbortSignal) {
       return array(await request(base(p) + "/templates", { signal }), (v) => {
         if (
           !object(v) ||
@@ -187,7 +187,7 @@ export function createTasksApi(request = apiRequest) {
         task,
       );
     },
-    async prerequisites(p: number, t: number, signal?: AbortSignal) {
+    async prerequisites(p: number | string, t: number, signal?: AbortSignal) {
       return array(
         await request(path(p, t) + "/prerequisites", { signal }),
         (v) => {

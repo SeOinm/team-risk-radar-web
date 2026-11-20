@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
@@ -105,7 +106,7 @@ function TeamView({
         {action.notice && <p role="status">{action.notice}</p>}
         {action.locked && <Btn onClick={reload}>최신 상태 불러오기</Btn>}
         {q.loading ? (
-          <p role="status">팀원을 불러오고 있습니다…</p>
+          <LoadingSkeleton label="팀원 목록" className="max-w-lg py-3" />
         ) : q.error ? (
           <div>
             <p role="alert">{q.error}</p>

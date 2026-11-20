@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useEffect, useState } from "react";
 import { teamApi } from "@/api/team";
 import type { ProjectResponse } from "@/api/projects";
@@ -50,7 +51,7 @@ export function InviteLinkPanel({
       </div>
       <div className="p-5 space-y-3">
         {query.loading ? (
-          <p role="status">초대 링크를 불러오고 있습니다…</p>
+          <LoadingSkeleton label="초대 링크" rows={2} />
         ) : query.error ? (
           <>
             <p role="alert">{query.error}</p>

@@ -54,7 +54,7 @@ export function ProjectList() {
             <h1 className="text-[18px] lg:text-[20px] font-semibold text-[#111827] tracking-tight">내 프로젝트</h1>
             <p className="text-[13px] lg:text-[14px] text-[#6B7280] mt-0.5">참여 중인 팀 프로젝트</p>
           </div>
-          <span className="text-[12px] lg:text-[13px] text-[#9CA3AF]">{loading ? '불러오는 중…' : error ? '' : `${projectList.length}개`}</span>
+          <span className="text-[12px] lg:text-[13px] text-[#9CA3AF]">{!loading && !error && `${projectList.length}개`}</span>
         </div>
 
         {/* Filters */}
@@ -83,7 +83,20 @@ export function ProjectList() {
         {/* Project list — Linear/GitHub style */}
         <div className="border border-[#E5E7EB] rounded-md overflow-hidden">
           {loading ? (
-            <p role="status" className="p-8 text-center text-sm">프로젝트를 불러오고 있습니다…</p>
+            <div aria-busy="true">
+              <span className="sr-only" role="status">프로젝트 목록 로딩 중</span>
+              <div aria-hidden="true" className="divide-y divide-border motion-safe:animate-pulse">
+                {[0, 1, 2].map(row => (
+                  <div key={row} className="flex items-center gap-4 px-4 py-3">
+                    <div className="size-2 shrink-0 rounded-full bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-40 max-w-full rounded bg-muted" />
+                      <div className="h-3 w-28 max-w-full rounded bg-muted" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : error ? (
             <div className="p-8 text-center space-y-3"><p role="alert">{error}</p><Btn onClick={retry}>다시 시도</Btn></div>
           ) : filtered.length === 0 ? (

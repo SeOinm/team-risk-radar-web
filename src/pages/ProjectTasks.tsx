@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { moveTask } from "@/lib/taskOrder";
 import { ApiError } from "@/api/client";
 import { Plus, ChevronDown, ClipboardCheck, Ellipsis, Info, SlidersHorizontal, GripVertical, Users } from "lucide-react";
@@ -9,7 +10,7 @@ import {
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { ProjectCalendarPanel } from "@/pages/ProjectCalendar";
+import { ProjectCalendarPanel, type CalendarLinks } from "@/pages/ProjectCalendar";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
@@ -22,9 +23,10 @@ import {
   SizeBadgeDs,
   ProgressBar,
 } from "@/components/ds";
-import { tasksApi, TASK_STATUS, type Task } from "@/api/tasks";
+import { tasksApi, TASK_STATUS, type Task, type TaskTemplate } from "@/api/tasks";
 import { DAY_LABELS, ROLE_LABELS, STATUS_LABELS, type ProjectResponse } from "@/api/projects";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { PROJECT_TYPES } from "@/lib/projectTemplates";
 import { useApiAction } from "@/hooks/useApiAction";
 export function ProjectTasksRedirect() {
   const { projectId } = useParams();
@@ -34,20 +36,51 @@ export function ProjectTasksRedirect() {
 
 export function ProjectTasks() {
   const { projectId = "" } = useParams();
+  return <ProjectTaskBoard key={projectId} projectId={projectId} />;
+}
+
+function ProjectTaskBoard({ projectId }: { projectId: string }) {
+  const [searchParams] = useSearchParams();
+  const recommendedType = searchParams.get("template");
+  const hasRecommendation = PROJECT_TYPES.some(type => type.value === recommendedType);
+  const [templatesRequested, setTemplatesRequested] = useState(hasRecommendation);
+  const load = useCallback((signal: AbortSignal) => tasksApi.list(projectId, signal), [projectId]);
+  const loadTemplates = useCallback(
+    (signal: AbortSignal) => templatesRequested ? tasksApi.templates(projectId, signal) : Promise.resolve(null),
+    [projectId, templatesRequested],
+  );
+  const q = useApiQuery(load, true);
+  const taskIds = q.data?.filter(task => task.status !== "CANCELLED").map(task => task.id).sort((a, b) => a - b).join(",") ?? "";
+  const loadLinks = useCallback((signal: AbortSignal) => Promise.all(
+    (taskIds ? taskIds.split(",").map(Number) : []).map(async taskId => ({
+      taskId,
+      prerequisites: await tasksApi.prerequisites(projectId, taskId, signal),
+    })),
+  ), [projectId, taskIds]);
+  const links = useApiQuery(loadLinks, true, q.data !== null);
+  const templates = useApiQuery(loadTemplates);
+  const pending = q.initialLoading || (taskIds !== "" && links.initialLoading) ||
+    (hasRecommendation && templates.initialLoading);
   return (
-    <ProjectLoader key={projectId} id={projectId}>
-      {(p) => <TaskBoardData project={p} />}
+    <ProjectLoader id={projectId} pending={pending}>
+      {project => (
+        <TaskBoardData project={project} q={q} links={links}
+          templates={{ ...templates, loading: templates.loading || (!templates.data && !templates.error) }}
+          requestTemplates={() => setTemplatesRequested(true)} />
+      )}
     </ProjectLoader>
   );
 }
-function TaskBoardData({ project }: { project: ProjectResponse }) {
+
+function TaskBoardData({ project, q, links, templates, requestTemplates }: {
+  project: ProjectResponse;
+  q: ReturnType<typeof useApiQuery<Task[]>>;
+  links: CalendarLinks;
+  templates: ReturnType<typeof useApiQuery<TaskTemplate[]>>;
+  requestTemplates: () => void;
+}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const recommendedType = searchParams.get("template");
-  const load = useCallback(
-    (signal: AbortSignal) => tasksApi.list(project.id, signal),
-    [project.id],
-  );
-  const q = useApiQuery(load);
   const action = useApiAction();
   const navigate = useNavigate();
   const projectPath = `/projects/${project.id}`;
@@ -59,7 +92,7 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   const writable =
     project.myRole !== "MEMBER" &&
     project.status === "IN_PROGRESS" &&
-    !action.locked;
+    !action.locked && !q.loading;
   const rows = (q.data ?? [])
     .filter((t) => {
       if (filter === "취소") return t.status === "CANCELLED";
@@ -132,7 +165,6 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
               <h1 id="project-heading" className="min-w-0 break-words text-lg font-semibold">{project.title}</h1>
               <RoleBadgeDs role={ROLE_LABELS[project.myRole]} />
               <Badge variant={project.status === "DONE" ? "safe" : "default"}>{STATUS_LABELS[project.status]}</Badge>
-              {project.className && <span className="text-sm text-muted-foreground">{project.className}</span>}
             </div>
             <div className="shrink-0">
               <DropdownMenu>
@@ -190,7 +222,7 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
             </div>
           </div>
         </section>
-        <ProjectCalendarPanel project={project} query={q} recommendedType={recommendedType} onRecommendationDismiss={() => {
+        <ProjectCalendarPanel project={project} query={q} links={links} templates={templates} requestTemplates={requestTemplates} recommendedType={recommendedType} onRecommendationDismiss={() => {
           if (!recommendedType) return;
           setSearchParams(current => {
             const next = new URLSearchParams(current);
@@ -273,16 +305,14 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
             )}
           </section>
         )}
-        {q.loading ? (
-          <p role="status">작업을 불러오고 있습니다…</p>
-        ) : q.error ? (
+        {q.error ? (
           <>
             <p role="alert">{q.error}</p>
             <Btn onClick={q.retry}>다시 시도</Btn>
           </>
         ) : (
           <div className="border border-border rounded overflow-x-auto">
-            <table ref={tableRef} className="w-full text-sm">
+            <table ref={tableRef} className="w-full text-sm" aria-busy={q.loading}>
               <thead className="bg-muted">
                 <tr>
                   <th className="w-10"><span className="sr-only">순서 변경</span></th>
@@ -383,7 +413,7 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
                     </td>
                   </tr>
                 ))}
-                {!rows.length && (
+                {!q.loading && !rows.length && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center">
                       표시할 작업이 없습니다.
@@ -428,7 +458,7 @@ function Templates({
   return (
     <div className="space-y-5">
       {q.loading ? (
-        <p role="status">템플릿 로딩 중…</p>
+        <LoadingSkeleton label="작업 템플릿" rows={2} />
       ) : q.error ? (
         <div className="space-y-2">
           <p role="alert">{q.error}</p>

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { Link } from "react-router";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ApiError } from "@/api/client";
-import { tasksApi, type Task } from "@/api/tasks";
+import { tasksApi, type Task, type TaskTemplate } from "@/api/tasks";
 import type { ProjectResponse } from "@/api/projects";
 import { TaskForm } from "@/components/TaskForm";
 import { Btn } from "@/components/ds";
@@ -50,12 +51,18 @@ function taskRange(task: Task, starts: Starts): Range | undefined {
   return { start, end };
 }
 
-export function ProjectCalendarPanel({ project, query, recommendedType, onRecommendationDismiss, demo }: {
+type TaskLinks = { taskId: number; prerequisites: { taskId: number }[] }[];
+export type CalendarLinks = Pick<ReturnType<typeof useApiQuery<TaskLinks>>, "data" | "error" | "retry">;
+
+export function ProjectCalendarPanel({ project, query, links, templates, requestTemplates, recommendedType, onRecommendationDismiss, demo }: {
   project: Pick<ProjectResponse, "id" | "deadline" | "myRole" | "status">;
-  query: ReturnType<typeof useApiQuery<Task[]>>;
+  query: Pick<ReturnType<typeof useApiQuery<Task[]>>, "data" | "error" | "loading" | "retry" | "updateData">;
+  links?: CalendarLinks;
+  templates?: ReturnType<typeof useApiQuery<TaskTemplate[]>>;
+  requestTemplates?: () => void;
   recommendedType?: string | null;
   onRecommendationDismiss?: () => void;
-  demo?: { starts: Starts; links: { taskId: number; prerequisites: { taskId: number }[] }[] };
+  demo?: { starts: Starts; links: TaskLinks };
 }) {
   const base = `/projects/${project.id}`;
   const storageKey = demo ? "risense:project-calendar:demo" : `risense:project-calendar:starts:${project.id}`;
@@ -122,20 +129,10 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   const [dragItem, setDragItem] = useState<Drag | null>(null);
   const action = useApiAction();
   const hasEditPermission = !demo && project.myRole !== "MEMBER" && project.status === "IN_PROGRESS";
-  const canEdit = hasEditPermission && !action.busy && !action.locked;
+  const canEdit = hasEditPermission && !query.loading && !action.busy && !action.locked;
   const tasks = useMemo(() => query.data?.filter(task => task.status !== "CANCELLED"), [query.data]);
-  const loadLinks = useCallback(async (signal: AbortSignal) => {
-    if (!tasks?.length || !showLinks) return [];
-    if (demo) return demo.links;
-    return Promise.all(tasks.map(async task => ({
-      taskId: task.id, prerequisites: await tasksApi.prerequisites(project.id, task.id, signal),
-    })));
-  }, [demo, project.id, tasks, showLinks]);
-  const links = useApiQuery(loadLinks);
-  const loadTemplates = useCallback((signal: AbortSignal) =>
-    panel === "template" && !demo ? tasksApi.templates(project.id, signal) : Promise.resolve([]), [demo, project.id, panel]);
-  const templates = useApiQuery(loadTemplates);
-  const choices = calendarTemplates(templates.data ?? []);
+  const taskLinks = demo?.links ?? links?.data;
+  const choices = calendarTemplates(templates?.data ?? []);
   const template = choices.find(item => item.template === templateName)
     ?? (recommendation && choices.find(item => matchesProjectType(item, recommendation)))
     ?? choices[0];
@@ -207,7 +204,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   }
 
   function applyTemplate() {
-    if (!template || !canEdit || templates.loading || !plan.length) return;
+    if (!template || !canEdit || templates?.loading || !plan.length) return;
     setTemplateWarning("");
     void action.run(async () => {
       if (template.template.startsWith("local:")) {
@@ -284,14 +281,13 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
         {action.error && <p role="alert">{action.error}</p>}
         {templateWarning && <p role="alert">{templateWarning}</p>}
         {storageWarning && <p role="alert">{storageWarning}</p>}
-        {query.loading && <p role="status">작업을 불러오는 중…</p>}
         {query.error && <div role="alert">{query.error} <Btn onClick={query.retry}>다시 시도</Btn></div>}
         {panel === "template" && (
           <section className="space-y-3 rounded-lg border border-border p-4" aria-label="작업 템플릿 미리보기">
             {recommendation && <h2 className="font-semibold">{recommendation.label} 프로젝트 추천 일정 초안</h2>}
-            {templates.loading && <p role="status">템플릿을 불러오는 중…</p>}
-            {templates.error && <p role="alert">서버 템플릿을 불러오지 못했습니다. 기본 템플릿을 사용할 수 있습니다. <Btn onClick={templates.retry}>다시 시도</Btn></p>}
-            {!templates.loading && template && <>
+            {templates?.loading && <LoadingSkeleton label="달력 템플릿" rows={2} className="max-w-sm" />}
+            {templates?.error && <p role="alert">서버 템플릿을 불러오지 못했습니다. 기본 템플릿을 사용할 수 있습니다. <Btn onClick={templates.retry}>다시 시도</Btn></p>}
+            {!templates?.loading && template && <>
               <label className="flex flex-wrap items-center gap-2 text-sm">템플릿<select className={field} value={template.template} onChange={event => setTemplateName(event.target.value)}>{choices.map(item => <option key={item.template} value={item.template}>{item.name}</option>)}</select></label>
               <div className="flex flex-wrap gap-3">
                 <label className="grid gap-1 text-sm">시작일<input type="date" className={field} value={templateStart} onChange={event => setTemplateStart(event.target.value)} /></label>
@@ -304,7 +300,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
             </>}
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
               <Btn disabled={action.busy} onClick={closeTemplate}>닫기</Btn>
-              {!templates.loading && template && (
+              {!templates?.loading && template && (
                 <Btn variant="primary" disabled={!canEdit || !plan.length} onClick={applyTemplate}>
                   미리보기 일정으로 작업 추가
                 </Btn>
@@ -396,7 +392,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
               <Btn size="sm" aria-label="다음 기간" onClick={() => showPeriod(shift(range.end, 1), periodLength)}>→</Btn>
               <Btn size="sm" variant="ghost" onClick={() => showPeriod(today(), periodLength)}>오늘</Btn>
               <div className="ml-auto flex flex-wrap gap-2">
-                <Btn size="sm" disabled={!canEdit} onClick={() => { setTemplateName(""); setPanel("template"); }}>템플릿 선택</Btn>
+                <Btn size="sm" disabled={!canEdit} onClick={() => { requestTemplates?.(); setTemplateName(""); setPanel("template"); }}>템플릿 선택</Btn>
                 <Btn size="sm" onClick={() => openSettings(range)}>달력 설정</Btn>
               </div>
             </div>
@@ -490,7 +486,7 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
               {members.map((member, index) => <li key={member.memberId} className={`rounded px-2 py-1 ${colors[index % colors.length]}`}>{member.nickname}</li>)}
               <li className="rounded bg-slate-100 px-2 py-1 text-slate-900">미배정</li>
             </ul>
-            {showLinks && links.error && <p className="px-3 pb-2 text-sm" role="alert">연결선을 불러오지 못했습니다. <Btn size="sm" onClick={links.retry}>다시 시도</Btn></p>}
+            {showLinks && links?.error && <p className="px-3 pb-2 text-sm" role="alert">연결선을 불러오지 못했습니다. <Btn size="sm" onClick={links.retry}>다시 시도</Btn></p>}
             {!days.length && <p className="p-4 text-sm">표시할 날짜가 없습니다. 주말을 표시하거나 날짜 범위를 바꿔주세요.</p>}
             <div className="overflow-x-auto border-t border-border" tabIndex={0} aria-label="날짜 열을 좌우로 스크롤">
               <div style={{ width }}>
@@ -531,8 +527,8 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                       className={`shrink-0 border-r border-border ${weekend(day) ? "bg-slate-50" : ""}`}
                     />)}
                   </div>
-                  {showLinks && links.data && <svg aria-hidden="true" className="pointer-events-none absolute inset-0 text-slate-400" width={width} height={chartHeight}>
-                    {links.data.flatMap(({ taskId, prerequisites }) => prerequisites.map(({ taskId: source }) => {
+                  {showLinks && taskLinks && <svg aria-hidden="true" className="pointer-events-none absolute inset-0 text-slate-400" width={width} height={chartHeight}>
+                    {taskLinks.flatMap(({ taskId, prerequisites }) => prerequisites.map(({ taskId: source }) => {
                       const from = scheduled.findIndex(item => item.task.id === source);
                       const to = scheduled.findIndex(item => item.task.id === taskId);
                       if (from < 0 || to < 0) return null;

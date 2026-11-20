@@ -95,11 +95,14 @@ function id(value: number) {
 export function createCheckinsApi(request = apiRequest) {
   return {
     async current(
-      projectId: number,
+      projectId: number | string,
       signal?: AbortSignal,
     ): Promise<CurrentCheckin> {
+      const projectNumber = typeof projectId === "number" || /^[1-9]\d*$/.test(projectId)
+        ? Number(projectId)
+        : NaN;
       const data = await request(
-        `/projects/${id(projectId)}/checkins/current`,
+        `/projects/${id(projectNumber)}/checkins/current`,
         { signal },
       );
       if (!data || typeof data !== "object" || Array.isArray(data))

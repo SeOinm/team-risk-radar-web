@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useCallback, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ProjectLoader } from "@/components/ProjectLoader";
@@ -34,18 +35,23 @@ const reasons: Record<string, string> = {
 };
 export function ProjectCheckin() {
   const { projectId = "" } = useParams();
+  return <ProjectCheckinLoader key={projectId} projectId={projectId} />;
+}
+
+function ProjectCheckinLoader({ projectId }: { projectId: string }) {
+  const load = useCallback((signal: AbortSignal) => checkinsApi.current(projectId, signal), [projectId]);
+  const q = useApiQuery(load);
   return (
-    <ProjectLoader key={projectId} id={projectId}>
-      {(project) => <CheckinData project={project} />}
+    <ProjectLoader id={projectId} pending={q.initialLoading}>
+      {project => <CheckinData project={project} q={q} />}
     </ProjectLoader>
   );
 }
-function CheckinData({ project }: { project: ProjectResponse }) {
-  const load = useCallback(
-    (signal: AbortSignal) => checkinsApi.current(project.id, signal),
-    [project.id],
-  );
-  const q = useApiQuery(load);
+
+function CheckinData({ project, q }: {
+  project: ProjectResponse;
+  q: ReturnType<typeof useApiQuery<CurrentCheckin>>;
+}) {
   return (
     <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-30 h-12 border-b border-border bg-white flex items-center px-4 gap-3">
@@ -62,7 +68,7 @@ function CheckinData({ project }: { project: ProjectResponse }) {
       <main className="max-w-3xl mx-auto p-6 space-y-5">
         <div className="flex justify-between gap-3"><h1 className="text-lg font-semibold">체크인</h1><Link className="text-sm text-brand-blue hover:underline" to={`/projects/${project.id}/checkin-history`}>내 체크인 기록</Link></div>
         {q.loading ? (
-          <p role="status">체크인을 불러오고 있습니다…</p>
+          <LoadingSkeleton label="체크인" rows={1} className="max-w-lg py-3" />
         ) : q.error ? (
           <>
             <p role="alert">{q.error}</p>

@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { TaskIssue } from "@/components/TaskIssue";
 import { GripVertical, House } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -110,7 +111,7 @@ function Detail({
         )}
         {action.notice && <p role="status">{action.notice}</p>}
         {q.loading ? (
-          <p role="status">작업을 불러오고 있습니다…</p>
+          <LoadingSkeleton label="작업 상세" className="max-w-lg py-3" />
         ) : q.error ? (
           <>
             <p role="alert">{q.error}</p>
@@ -331,7 +332,7 @@ function Histories({
   return (
     <Section title="담당자 변경 이력">
       {q.loading ? (
-        <p role="status">조회 중…</p>
+        <LoadingSkeleton label="담당자 변경 이력" rows={2} />
       ) : q.error ? (
         <>
           <p role="alert">{q.error}</p>
@@ -495,7 +496,7 @@ function Children({
   return (
     <Section title="하위 작업">
       {q.loading ? (
-        <p role="status">조회 중…</p>
+        <LoadingSkeleton label="하위 작업" rows={2} />
       ) : q.error ? (
         <>
           <p role="alert">{q.error}</p>
