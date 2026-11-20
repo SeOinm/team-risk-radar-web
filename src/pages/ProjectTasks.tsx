@@ -4,7 +4,7 @@ import { Plus, ChevronDown, ChevronLeft, SlidersHorizontal, GripVertical } from 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { ProjectCalendarPanel } from "@/pages/ProjectCalendar";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
@@ -28,6 +28,8 @@ export function ProjectTasks() {
   );
 }
 function TaskBoardData({ project }: { project: ProjectResponse }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const recommendedType = searchParams.get("template");
   const load = useCallback(
     (signal: AbortSignal) => tasksApi.list(project.id, signal),
     [project.id],
@@ -119,7 +121,14 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
       </header>
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-4 sm:py-6">
         <h1 className="text-lg font-semibold">작업 보드</h1>
-        <ProjectCalendarPanel project={project} query={q} />
+        <ProjectCalendarPanel project={project} query={q} recommendedType={recommendedType} onRecommendationDismiss={() => {
+          if (!recommendedType) return;
+          setSearchParams(current => {
+            const next = new URLSearchParams(current);
+            next.delete("template");
+            return next;
+          }, { replace: true });
+        }} />
         <div className="flex items-center justify-between gap-3 flex-wrap border-t border-border pt-4">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="inline-flex items-center rounded-md bg-muted p-1" aria-label="작업 필터">

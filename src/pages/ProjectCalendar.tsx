@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import { ApiError } from "@/api/client";
 import { tasksApi, type Task } from "@/api/tasks";
@@ -7,6 +7,7 @@ import { TaskForm } from "@/components/TaskForm";
 import { Btn } from "@/components/ds";
 import { useApiAction } from "@/hooks/useApiAction";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { calendarTemplates, PROJECT_TYPES } from "@/lib/projectTemplates";
 
 const dayMs = 86_400_000;
 const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
@@ -47,13 +48,16 @@ export function ProjectCalendar() {
   return <Navigate to={`/projects/${projectId}/tasks`} replace />;
 }
 
-export function ProjectCalendarPanel({ project, query }: {
-  project: ProjectResponse;
+export function ProjectCalendarPanel({ project, query, recommendedType, onRecommendationDismiss, demo }: {
+  project: Pick<ProjectResponse, "id" | "deadline" | "myRole" | "status">;
   query: ReturnType<typeof useApiQuery<Task[]>>;
+  recommendedType?: string | null;
+  onRecommendationDismiss?: () => void;
+  demo?: { starts: Starts; links: { taskId: number; prerequisites: { taskId: number }[] }[] };
 }) {
   const base = `/projects/${project.id}`;
-  const storageKey = `risense:project-calendar:starts:${project.id}`;
-  const [starts, setStarts] = useState(() => readStarts(storageKey));
+  const storageKey = demo ? "risense:project-calendar:demo" : `risense:project-calendar:starts:${project.id}`;
+  const [starts, setStarts] = useState(() => demo?.starts ?? readStarts(storageKey));
   const deadline = datePart(project.deadline);
   const anchor = Number.isFinite(stamp(deadline)) ? deadline : today();
   const [view, setView] = useState(() => {
@@ -79,32 +83,50 @@ export function ProjectCalendarPanel({ project, query }: {
   const setRange = (next: Range) => setView(current => ({ ...current, range: next }));
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [preview, setPreview] = useState<Range | null>(null);
-  const [panel, setPanel] = useState<"task" | "template" | "settings" | null>(null);
+  const recommendation = PROJECT_TYPES.find(type => type.value === recommendedType);
+  const [panel, setPanel] = useState<"task" | "template" | "settings" | null>(() => recommendation ? "template" : null);
+  function closeTemplate() {
+    setPanel(null);
+    onRecommendationDismiss?.();
+  }
   const [settingsError, setSettingsError] = useState("");
   const [storageWarning, setStorageWarning] = useState("");
   const [templateName, setTemplateName] = useState("");
-  const [templateStart, setTemplateStart] = useState(() => shift(anchor, -13));
+  const [templateStart, setTemplateStart] = useState(() => {
+    const defaultStart = shift(anchor, -13);
+    const current = today();
+    return current > defaultStart && current <= anchor ? current : defaultStart;
+  });
   const [templateWarning, setTemplateWarning] = useState("");
   const [templateDue, setTemplateDue] = useState(anchor);
   const [includeScheduled, setIncludeScheduled] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
+  const [pendingSchedule, setPendingSchedule] = useState<{ taskId: number; dates: Range } | null>(null);
   const [dropDay, setDropDay] = useState<string | null>(null);
-  const drag = useRef<Drag | null>(null);
+  const [dragItem, setDragItem] = useState<Drag | null>(null);
   const action = useApiAction();
-  const hasEditPermission = project.myRole !== "MEMBER" && project.status === "IN_PROGRESS";
+  const hasEditPermission = !demo && project.myRole !== "MEMBER" && project.status === "IN_PROGRESS";
   const canEdit = hasEditPermission && !action.busy && !action.locked;
   const tasks = useMemo(() => query.data?.filter(task => task.status !== "CANCELLED"), [query.data]);
   const loadLinks = useCallback(async (signal: AbortSignal) => {
     if (!tasks?.length || !showLinks) return [];
+    if (demo) return demo.links;
     return Promise.all(tasks.map(async task => ({
       taskId: task.id, prerequisites: await tasksApi.prerequisites(project.id, task.id, signal),
     })));
-  }, [project.id, tasks, showLinks]);
+  }, [demo, project.id, tasks, showLinks]);
   const links = useApiQuery(loadLinks);
   const loadTemplates = useCallback((signal: AbortSignal) =>
-    panel === "template" ? tasksApi.templates(project.id, signal) : Promise.resolve([]), [project.id, panel]);
+    panel === "template" && !demo ? tasksApi.templates(project.id, signal) : Promise.resolve([]), [demo, project.id, panel]);
   const templates = useApiQuery(loadTemplates);
-  const template = templates.data?.find(item => item.template === templateName) ?? templates.data?.[0];
+  const choices = calendarTemplates(templates.data ?? []);
+  const template = choices.find(item => item.template === templateName)
+    ?? choices.find(item => recommendation && (
+      item.template.toLowerCase() === recommendation.value ||
+      item.template === `local:${recommendation.value}` ||
+      item.name === recommendation.label
+    ))
+    ?? choices[0];
   const templateSpan = gap(templateStart, templateDue);
   const validTemplateRange = templateSpan >= 0 && templateSpan <= 92;
   const plan = validTemplateRange && template ? template.tasks.map((task, index, items) => ({
@@ -114,10 +136,10 @@ export function ProjectCalendarPanel({ project, query }: {
   })) : [];
   const members = [...new Map((tasks ?? []).flatMap(task => task.assignees.map(member => [member.memberId, member] as const))).values()].sort((a, b) => a.memberId - b.memberId);
   const visible = (tasks ?? []).filter(task => !assignee || task.assignees.some(member => String(member.memberId) === assignee));
-  const placementTasks = includeScheduled ? visible : visible.filter(task => !task.dueDate);
+  const placementTasks = includeScheduled ? visible : visible.filter(task => !task.dueDate && task.id !== pendingSchedule?.taskId);
   const days = Array.from({ length: gap(range.start, range.end) + 1 }, (_, i) => shift(range.start, i)).filter(date => weekends || !weekend(date));
   const scheduled = visible.flatMap(task => {
-    const dates = taskRange(task, starts);
+    const dates = pendingSchedule?.taskId === task.id ? pendingSchedule.dates : taskRange(task, starts);
     if (!dates) return [];
     const first = days.findIndex(day => day >= dates.start && day <= dates.end);
     const last = days.findLastIndex(day => day >= dates.start && day <= dates.end);
@@ -127,6 +149,16 @@ export function ProjectCalendarPanel({ project, query }: {
   const row = 44;
   const width = days.length * column;
   const chartHeight = Math.max(5, visible.length + 1) * row;
+  const dragDates = dropDay && dragItem ? datesForDrop(dropDay, dragItem) : undefined;
+  const dragFirst = dragDates ? days.findIndex(day => day >= dragDates.start && day <= dragDates.end) : -1;
+  const dragLast = dragDates ? days.findLastIndex(day => day >= dragDates.start && day <= dragDates.end) : -1;
+  const dragRow = scheduled.findIndex(({ task }) => task.id === dragItem?.id);
+  const dragTask = dragItem ? visible.find(task => task.id === dragItem.id) : undefined;
+
+  function blockColor(task: Task) {
+    const owner = members.findIndex(member => member.memberId === task.assignees[0]?.memberId);
+    return owner < 0 ? "bg-slate-100 text-slate-900" : colors[owner % colors.length];
+  }
 
   function storeStarts(additions: Starts) {
     const next = { ...starts, ...readStarts(storageKey), ...additions };
@@ -144,24 +176,44 @@ export function ProjectCalendarPanel({ project, query }: {
     const previous = taskRange(task, starts);
     if (previous?.start === dates.start && previous.end === dates.end) return;
     void action.run(async () => {
-      const latest = await tasksApi.detail(project.id, String(task.id));
-      if (latest.status === "CANCELLED" || latest.dueDate !== task.dueDate) {
-        query.retry();
-        throw new ApiError(409, "TASK_SCHEDULE_CHANGED", "다른 곳에서 작업 일정이 변경되었습니다. 달력을 다시 열어 최신 일정을 확인해주세요.");
+      setPendingSchedule({ taskId: task.id, dates });
+      try {
+        const latest = await tasksApi.detail(project.id, String(task.id));
+        if (latest.status === "CANCELLED" || latest.dueDate !== task.dueDate) {
+          query.retry();
+          throw new ApiError(409, "TASK_SCHEDULE_CHANGED", "다른 곳에서 작업 일정이 변경되었습니다. 달력을 다시 열어 최신 일정을 확인해주세요.");
+        }
+        if (previous?.end !== dates.end) {
+          await tasksApi.update(project.id, task.id, { title: latest.title, size: latest.size, dueDate: dates.end, sortOrder: null });
+          query.updateData(current => current?.map(item => item.id === task.id ? { ...item, dueDate: dates.end } : item) ?? null);
+        }
+        storeStarts({ [task.id]: { start: dates.start, due: dates.end } });
+        setSelected(null);
+      } finally {
+        setPendingSchedule(null);
       }
-      if (previous?.end !== dates.end) {
-        await tasksApi.update(project.id, task.id, { title: latest.title, size: latest.size, dueDate: dates.end, sortOrder: null });
-        query.updateData(current => current?.map(item => item.id === task.id ? { ...item, dueDate: dates.end } : item) ?? null);
-      }
-      storeStarts({ [task.id]: { start: dates.start, due: dates.end } });
-      setSelected(null);
     }, () => {});
   }
 
   function applyTemplate() {
-    if (!template || !canEdit || !plan.length) return;
+    if (!template || !canEdit || templates.loading || !plan.length) return;
     setTemplateWarning("");
     void action.run(async () => {
+      if (template.template.startsWith("local:")) {
+        const datesToStore: Starts = {};
+        try {
+          for (const item of plan) {
+            const task = await tasksApi.create(project.id, { title: item.title, size: item.size, dueDate: item.due });
+            datesToStore[task.id] = { start: item.start, due: item.due };
+          }
+        } catch (error) {
+          if (!Object.keys(datesToStore).length || (error instanceof ApiError && error.status === 401)) throw error;
+          setTemplateWarning("일부 작업만 추가됐습니다. 달력에서 생성된 작업을 확인하고 남은 작업을 추가해주세요.");
+        } finally {
+          if (Object.keys(datesToStore).length) storeStarts(datesToStore);
+        }
+        return;
+      }
       const created = await tasksApi.fromTemplate(project.id, template.template, templateDue);
       const pending = [...plan];
       const datesToStore: Starts = {};
@@ -182,28 +234,40 @@ export function ProjectCalendarPanel({ project, query }: {
       if (pending.length || dates.some(result => result.status === "rejected")) {
         setTemplateWarning("템플릿 작업을 추가했지만 일부 마감일을 배치하지 못했습니다. 달력에서 해당 작업을 확인해주세요.");
       }
-    }, () => { setPanel(null); showPeriod(templateStart, templateSpan + 1); query.retry(); });
+    }, () => { closeTemplate(); showPeriod(templateStart, templateSpan + 1); query.retry(); });
   }
 
   function startDrag(event: DragEvent, item: Drag) {
     if (!canEdit) return;
-    drag.current = item;
+    setDragItem(item);
     event.dataTransfer.setData("text/plain", String(item.id));
     event.dataTransfer.effectAllowed = "move";
   }
 
   function clearDrag() {
-    drag.current = null;
+    setDragItem(null);
     setDropDay(null);
   }
 
-  function place(date: string, item: Drag | null) {
-    const task = tasks?.find(candidate => candidate.id === item?.id);
-    if (!task || !item) return;
+  function datesForDrop(date: string, item: Drag): Range | undefined {
+    const task = tasks?.find(candidate => candidate.id === item.id);
+    if (!task) return;
     const previous = taskRange(task, starts);
-    if (item.edge === "start" && previous) return save(task, { start: date, end: previous.end });
-    if (item.edge === "end" && previous) return save(task, { start: previous.start, end: date });
-    save(task, { start: date, end: shift(date, previous ? gap(previous.start, previous.end) : 0) });
+    if (item.edge === "start" && previous) return { start: date, end: previous.end };
+    if (item.edge === "end" && previous) return { start: previous.start, end: date };
+    return { start: date, end: shift(date, previous ? gap(previous.start, previous.end) : 0) };
+  }
+
+  function place(date: string, item: Drag | null) {
+    if (!item) return;
+    const dates = datesForDrop(date, item);
+    const task = tasks?.find(candidate => candidate.id === item.id);
+    if (dates && task) save(task, dates);
+  }
+
+  function dateUnderPointer(event: DragEvent<HTMLDivElement>) {
+    const left = event.currentTarget.getBoundingClientRect().left;
+    return days[Math.floor((event.clientX - left) / column)];
   }
 
   function showPeriod(start: string, length: number) {
@@ -211,7 +275,7 @@ export function ProjectCalendarPanel({ project, query }: {
   }
 
   return (
-    <section aria-label="작업 흐름 달력">
+    <section id="calendar" aria-label="작업 흐름 달력">
       <div className="space-y-4">
         {action.error && <p role="alert">{action.error}</p>}
         {templateWarning && <p role="alert">{templateWarning}</p>}
@@ -220,10 +284,11 @@ export function ProjectCalendarPanel({ project, query }: {
         {query.error && <div role="alert">{query.error} <Btn onClick={query.retry}>다시 시도</Btn></div>}
         {panel === "template" && (
           <section className="space-y-3 rounded-lg border border-border p-4" aria-label="작업 템플릿 미리보기">
-            {templates.loading && <p>템플릿을 불러오는 중…</p>}
-            {templates.error && <p role="alert">{templates.error} <Btn onClick={templates.retry}>다시 시도</Btn></p>}
-            {template && <>
-              <label className="flex flex-wrap items-center gap-2 text-sm">템플릿<select className={field} value={template.template} onChange={event => setTemplateName(event.target.value)}>{templates.data?.map(item => <option key={item.template} value={item.template}>{item.name}</option>)}</select></label>
+            {recommendation && <h2 className="font-semibold">{recommendation.label} 프로젝트 추천 일정 초안</h2>}
+            {templates.loading && <p role="status">템플릿을 불러오는 중…</p>}
+            {templates.error && <p role="alert">서버 템플릿을 불러오지 못했습니다. 기본 템플릿을 사용할 수 있습니다. <Btn onClick={templates.retry}>다시 시도</Btn></p>}
+            {!templates.loading && template && <>
+              <label className="flex flex-wrap items-center gap-2 text-sm">템플릿<select className={field} value={template.template} onChange={event => setTemplateName(event.target.value)}>{choices.map(item => <option key={item.template} value={item.template}>{item.name}</option>)}</select></label>
               <div className="flex flex-wrap gap-3">
                 <label className="grid gap-1 text-sm">시작일<input type="date" className={field} value={templateStart} onChange={event => setTemplateStart(event.target.value)} /></label>
                 <label className="grid gap-1 text-sm">최종 마감일<input type="date" className={field} value={templateDue} onChange={event => setTemplateDue(event.target.value)} /></label>
@@ -234,12 +299,11 @@ export function ProjectCalendarPanel({ project, query }: {
               </ol>
               <Btn disabled={!canEdit || !plan.length} onClick={applyTemplate}>미리보기 일정으로 작업 추가</Btn>
             </>}
-            {!templates.loading && !templates.error && !template && <p>사용할 수 있는 템플릿이 없습니다.</p>}
-            <Btn onClick={() => setPanel(null)}>닫기</Btn>
+            <Btn disabled={action.busy} onClick={closeTemplate}>닫기</Btn>
           </section>
         )}
         <div className="grid gap-4 lg:grid-cols-[12rem_minmax(0,1fr)]">
-          <aside className="min-w-0 space-y-3 rounded-xl border border-border p-4">
+          <aside className="flex min-h-0 min-w-0 flex-col gap-3 rounded-xl border border-border p-4 lg:[contain:size]">
             <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">일정 배치</h2><Btn size="sm" disabled={!canEdit} onClick={() => setPanel("task")}>작업 추가</Btn></div>
             {panel === "task" && <TaskForm busy={action.busy} onCancel={() => setPanel(null)} onSave={input => {
               if (!canEdit) return;
@@ -254,21 +318,25 @@ export function ProjectCalendarPanel({ project, query }: {
                 배치된 작업도 보기
               </label>
             )}
-            {placementTasks.map(task => (
-              <button key={task.id} type="button" disabled={!canEdit} draggable={canEdit} aria-pressed={selected === task.id}
-                className="block w-full rounded-md border border-border p-2 text-left text-sm aria-pressed:bg-blue-50"
-                onDragStart={event => startDrag(event, { id: task.id, edge: "move" })} onDragEnd={clearDrag}
-                onClick={() => setSelected(id => id === task.id ? null : task.id)}>
-                <span className="block break-words font-medium">{task.title}</span>
-                <span className="text-xs text-muted-foreground">{task.assignees.map(member => member.nickname).join(", ") || "미배정"} · {task.dueDate ? datePart(task.dueDate) : "일정 미정"}</span>
-              </button>
-            ))}
-            {tasks && !placementTasks.length && <p className="text-sm text-muted-foreground">일정 미정 작업이 없습니다.</p>}
+            <div className="min-h-0 max-h-64 space-y-3 overflow-y-auto p-0.5 lg:max-h-none" role="region" aria-label="일정 배치 작업 목록" tabIndex={0}>
+              {placementTasks.map(task => (
+                <button key={task.id} type="button" disabled={!canEdit} draggable={canEdit} aria-pressed={selected === task.id}
+                  className="block w-full rounded-md border border-border p-2 text-left text-sm aria-pressed:bg-blue-50"
+                  onDragStart={event => startDrag(event, { id: task.id, edge: "move" })} onDragEnd={clearDrag}
+                  onClick={() => setSelected(id => id === task.id ? null : task.id)}>
+                  <span className="block break-words font-medium">{task.title}</span>
+                  <span className="text-xs text-muted-foreground">{task.assignees.map(member => member.nickname).join(", ") || "미배정"} · {task.dueDate ? datePart(task.dueDate) : "일정 미정"}</span>
+                </button>
+              ))}
+              {tasks && !placementTasks.length && <p className="text-sm text-muted-foreground">일정 미정 작업이 없습니다.</p>}
+            </div>
           </aside>
           <section className="min-w-0 rounded-xl border border-border" aria-label="간트 달력">
             <div className="flex flex-wrap items-center gap-2 p-3">
               <Btn size="sm" aria-label="이전 기간" onClick={() => showPeriod(shift(range.start, -gap(range.start, range.end) - 1), gap(range.start, range.end) + 1)}>←</Btn>
-              <span className="text-sm font-medium">{range.start} ~ {range.end}</span>
+              <span className="text-sm font-medium tabular-nums">
+                {dragDates && dragFirst >= 0 ? `${dragDates.start} ~ ${dragDates.end}` : `${range.start} ~ ${range.end}`}
+              </span>
               <Btn size="sm" aria-label="다음 기간" onClick={() => showPeriod(shift(range.end, 1), gap(range.start, range.end) + 1)}>→</Btn>
               <Btn size="sm" variant="ghost" onClick={() => showPeriod(today(), gap(range.start, range.end) + 1)}>오늘</Btn>
               <div className="ml-auto flex flex-wrap gap-2">
@@ -374,12 +442,31 @@ export function ProjectCalendarPanel({ project, query }: {
                     {dateLabel.format(stamp(day))}{day === deadline && <span className="block">최종 제출</span>}
                   </button>)}
                 </div>
-                <div className="relative" style={{ height: chartHeight }}>
+                <div className="relative" style={{ height: chartHeight }}
+                  onDragOver={event => {
+                    if (!dragItem) return;
+                    event.preventDefault();
+                    const day = dateUnderPointer(event);
+                    const dates = day ? datesForDrop(day, dragItem) : undefined;
+                    const valid = dates && dates.start <= dates.end;
+                    event.dataTransfer.dropEffect = valid ? "move" : "none";
+                    setDropDay(valid ? day : null);
+                  }}
+                  onDragLeave={event => {
+                    if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
+                      setDropDay(null);
+                    }
+                  }}
+                  onDrop={event => {
+                    if (!dragItem) return;
+                    event.preventDefault();
+                    const day = dateUnderPointer(event);
+                    if (day) place(day, dragItem);
+                    clearDrag();
+                  }}>
                   <div className="absolute inset-0 flex">
                     {days.map(day => <div key={day} style={{ width: column }}
-                      className={`shrink-0 border-r border-border ${dropDay === day ? "bg-blue-100" : weekend(day) ? "bg-slate-50" : ""}`}
-                      onDragOver={event => { if (drag.current) { event.preventDefault(); setDropDay(day); } }}
-                      onDrop={event => { event.preventDefault(); place(day, drag.current); clearDrag(); }}
+                      className={`shrink-0 border-r border-border ${weekend(day) ? "bg-slate-50" : ""}`}
                     />)}
                   </div>
                   {showLinks && links.data && <svg aria-hidden="true" className="pointer-events-none absolute inset-0 text-slate-400" width={width} height={chartHeight}>
@@ -391,30 +478,41 @@ export function ProjectCalendarPanel({ project, query }: {
                       const x2 = scheduled[to].first * column + 8;
                       const y1 = from * row + row / 2;
                       const y2 = to * row + row / 2;
-                      return <g key={`${source}-${taskId}`} stroke="currentColor" fill="white"><path d={`M ${x1} ${y1} H ${x1 + 5} V ${y2} H ${x2}`} fill="none" /><circle cx={x1} cy={y1} r="3" /><circle cx={x2} cy={y2} r="3" /></g>;
+                      const exit = x1 + 5;
+                      const entry = x2 - 7;
+                      const gapY = y1 + Math.sign(y2 - y1) * row / 2;
+                      const path = exit <= entry
+                        ? `M ${x1} ${y1} H ${exit} V ${y2} H ${x2}`
+                        : `M ${x1} ${y1} H ${exit} V ${gapY} H ${entry} V ${y2} H ${x2}`;
+                      return (
+                        <g key={`${source}-${taskId}`} stroke="currentColor" fill="none">
+                          <path d={path} />
+                          <circle cx={x1} cy={y1} r="3" fill="white" />
+                          <path d={`M ${x2 - 4} ${y2 - 3} L ${x2} ${y2} L ${x2 - 4} ${y2 + 3}`} />
+                        </g>
+                      );
                     }))}
                   </svg>}
                   {scheduled.map(({ task, dates, first, last }, index) => {
-                    const owner = members.findIndex(member => member.memberId === task.assignees[0]?.memberId);
                     const description = `${task.title} · ${task.assignees.map(member => member.nickname).join(", ") || "미배정"} · ${dates.start} ~ ${dates.end}`;
-                    return <div key={task.id} className={`group absolute z-10 hover:z-20 focus-within:z-20 flex h-8 items-center rounded-md ${owner < 0 ? "bg-slate-100 text-slate-900" : colors[owner % colors.length]}`}
-                      style={{ top: index * row + 6, left: first * column + 8, width: (last - first + 1) * column - 16 }}
-                      onDragOver={event => { if (drag.current) event.preventDefault(); }}
-                      onDrop={event => {
-                        if (!drag.current) return;
-                        event.preventDefault();
-                        const bounds = event.currentTarget.getBoundingClientRect();
-                        const day = days[Math.min(last, first + Math.floor((event.clientX - bounds.left + 8) / column))];
-                        if (day) place(day, drag.current);
-                        clearDrag();
-                      }}>
+                    return <div key={task.id} className={`group absolute z-10 hover:z-20 focus-within:z-20 flex h-8 items-center rounded-md ${dragFirst >= 0 && dragItem?.id === task.id ? "opacity-0" : ""} ${blockColor(task)}`}
+                      style={{ top: index * row + 6, left: first * column + 8, width: (last - first + 1) * column - 16 }}>
                       {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-r border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 시작일 조정"} title="끌어서 시작일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "start" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
-                      <Link to={`${base}/tasks/${task.id}`} state={{ fromCalendar: true }} aria-label={description}
+                      <Link to={demo ? `/task/t${task.id}` : `${base}/tasks/${task.id}`} state={{ fromCalendar: true }} aria-label={description}
                         className="min-w-0 flex-1 truncate px-1.5 text-xs font-medium hover:underline" draggable={false}>{task.title}</Link>
                       {hasEditPermission && <button type="button" disabled={!canEdit} className="h-full w-2 shrink-0 cursor-ew-resize border-l border-current/20 disabled:cursor-default" draggable={canEdit} aria-label={task.title + " 마감일 조정"} title="끌어서 마감일 조정" onDragStart={event => startDrag(event, { id: task.id, edge: "end" })} onDragEnd={clearDrag} onClick={() => { setSelected(null); setEditTask(task); setPreview(dates); setSettingsError(""); setPanel("settings"); }} />}
                       <span className={`pointer-events-none absolute top-full z-10 hidden w-max max-w-56 whitespace-normal rounded bg-slate-900 px-2 py-1 text-xs text-white shadow group-hover:block group-focus-within:block ${last >= days.length - 2 && first > 1 ? "right-0" : "left-0"}`} aria-hidden="true">{description}</span>
                     </div>;
                   })}
+                  {dragTask && dragFirst >= 0 && <div aria-hidden="true"
+                    className={`pointer-events-none absolute z-30 flex h-8 items-center rounded-md px-2.5 text-xs font-medium shadow-sm ring-1 ring-inset ring-current/15 ${blockColor(dragTask)}`}
+                    style={{
+                      top: (dragRow >= 0 ? dragRow : scheduled.length) * row + 6,
+                      left: dragFirst * column + 8,
+                      width: (dragLast - dragFirst + 1) * column - 16,
+                    }}>
+                    <span className="min-w-0 truncate">{dragTask.title}</span>
+                  </div>}
                 </div>
               </div>
             </div>
