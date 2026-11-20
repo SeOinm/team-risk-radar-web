@@ -1,13 +1,11 @@
 import { ProjectCheckinHistory } from '@/pages/ProjectCheckinHistory';
 import { ProjectCheckinStatus } from '@/pages/ProjectCheckinStatus';
 import { ProjectCheckin } from '@/pages/ProjectCheckin';
-import { ProjectCalendar } from '@/pages/ProjectCalendar';
-import { ProjectTasks } from '@/pages/ProjectTasks';
+import { ProjectTasks, ProjectTasksRedirect } from '@/pages/ProjectTasks';
 import { ProjectTaskDetail } from '@/pages/ProjectTaskDetail';
 import { ProjectTeam } from '@/pages/ProjectTeam';
 import { RequireAuth } from '@/auth/RequireAuth';
 import { Routes, Route } from 'react-router';
-import { ProjectDetail } from '@/pages/ProjectDetail';
 import { ProjectList } from '@/pages/ProjectList';
 import { Home } from '@/pages/Home';
 import { AuthScreens } from '@/pages/AuthScreens';
@@ -50,12 +48,12 @@ export default function App() {
 
       <Route element={<RequireAuth />}>
       <Route path="/projects" element={<ProjectList />} />
-      <Route path="/projects/:projectId" element={<ProjectDetail />} />
+      <Route path="/projects/:projectId" element={<ProjectTasksRedirect />} />
       <Route path="/projects/:projectId/checkin-history" element={<ProjectCheckinHistory />} />
       <Route path="/projects/:projectId/checkin-status" element={<ProjectCheckinStatus />} />
       <Route path="/projects/:projectId/checkin" element={<ProjectCheckin />} />
       <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />
-      <Route path="/projects/:projectId/calendar" element={<ProjectCalendar />} />
+      <Route path="/projects/:projectId/calendar" element={<ProjectTasksRedirect />} />
       <Route path="/projects/:projectId/tasks" element={<ProjectTasks />} />
       <Route path="/projects/:projectId/tasks/:taskId" element={<ProjectTaskDetail />} />
       <Route path="/projects/:projectId/members" element={<ProjectTeam />} />

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
-import { Link, Navigate, useParams } from "react-router";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { Link } from "react-router";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ApiError } from "@/api/client";
 import { tasksApi, type Task } from "@/api/tasks";
 import type { ProjectResponse } from "@/api/projects";
@@ -8,6 +9,11 @@ import { Btn } from "@/components/ds";
 import { useApiAction } from "@/hooks/useApiAction";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { calendarTemplates, PROJECT_TYPES } from "@/lib/projectTemplates";
+
+const collapseTaskListWidth = 72;
+const minTaskListWidth = 192;
+const maxTaskListWidth = 384;
+const clampTaskListWidth = (width: number) => Math.min(maxTaskListWidth, Math.max(minTaskListWidth, Math.round(width)));
 
 const dayMs = 86_400_000;
 const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
@@ -43,11 +49,6 @@ function taskRange(task: Task, starts: Starts): Range | undefined {
   return { start, end };
 }
 
-export function ProjectCalendar() {
-  const { projectId = "" } = useParams();
-  return <Navigate to={`/projects/${projectId}/tasks`} replace />;
-}
-
 export function ProjectCalendarPanel({ project, query, recommendedType, onRecommendationDismiss, demo }: {
   project: Pick<ProjectResponse, "id" | "deadline" | "myRole" | "status">;
   query: ReturnType<typeof useApiQuery<Task[]>>;
@@ -61,18 +62,20 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   const deadline = datePart(project.deadline);
   const anchor = Number.isFinite(stamp(deadline)) ? deadline : today();
   const [view, setView] = useState(() => {
-    const defaults = { range: { start: shift(anchor, -13), end: anchor }, weekends: true, showLinks: true, assignee: "" };
+    const defaults = { range: { start: shift(anchor, -13), end: anchor }, weekends: true, showLinks: true, assignee: "", taskListWidth: minTaskListWidth };
     try {
       const saved = JSON.parse(sessionStorage.getItem(storageKey + ":view") ?? "null");
       const span = saved ? gap(saved.range.start, saved.range.end) : NaN;
       if (span >= 0 && span <= 92 && typeof saved.weekends === "boolean"
-        && typeof saved.showLinks === "boolean" && typeof saved.assignee === "string") return saved as typeof defaults;
+        && typeof saved.showLinks === "boolean" && typeof saved.assignee === "string") {
+        return { ...saved, taskListWidth: Number.isFinite(saved.taskListWidth) ? clampTaskListWidth(saved.taskListWidth) : defaults.taskListWidth } as typeof defaults;
+      }
     } catch {
       // Keep the default view when browser storage is unavailable.
     }
     return defaults;
   });
-  const { range, weekends, showLinks, assignee } = view;
+  const { range, weekends, showLinks, assignee, taskListWidth } = view;
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey + ":view", JSON.stringify(view));
@@ -99,7 +102,14 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   });
   const [templateWarning, setTemplateWarning] = useState("");
   const [templateDue, setTemplateDue] = useState(anchor);
-  const [includeScheduled, setIncludeScheduled] = useState(false);
+  const taskListId = useId();
+  const panelResize = useRef<{ pointerId: number; x: number; width: number } | null>(null);
+  function resizeTaskList(width: number) {
+    const next = clampTaskListWidth(width);
+    setView(current => current.taskListWidth === next ? current : { ...current, taskListWidth: next });
+  }
+  const [showTaskList, setShowTaskList] = useState(true);
+  const taskListToggleLabel = showTaskList ? "작업 목록 숨기기" : "작업 목록 표시";
   const [selected, setSelected] = useState<number | null>(null);
   const [pendingSchedule, setPendingSchedule] = useState<{ taskId: number; dates: Range } | null>(null);
   const [dropDay, setDropDay] = useState<string | null>(null);
@@ -136,7 +146,6 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
   })) : [];
   const members = [...new Map((tasks ?? []).flatMap(task => task.assignees.map(member => [member.memberId, member] as const))).values()].sort((a, b) => a.memberId - b.memberId);
   const visible = (tasks ?? []).filter(task => !assignee || task.assignees.some(member => String(member.memberId) === assignee));
-  const placementTasks = includeScheduled ? visible : visible.filter(task => !task.dueDate && task.id !== pendingSchedule?.taskId);
   const days = Array.from({ length: gap(range.start, range.end) + 1 }, (_, i) => shift(range.start, i)).filter(date => weekends || !weekend(date));
   const scheduled = visible.flatMap(task => {
     const dates = pendingSchedule?.taskId === task.id ? pendingSchedule.dates : taskRange(task, starts);
@@ -297,29 +306,37 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
               <ol className="list-decimal pl-6 text-sm">
                 {template.tasks.map((task, index) => <li key={index}>{task.title}{plan[index] && <span className="ml-2 text-muted-foreground">{plan[index].start} ~ {plan[index].due}</span>}</li>)}
               </ol>
-              <Btn disabled={!canEdit || !plan.length} onClick={applyTemplate}>미리보기 일정으로 작업 추가</Btn>
             </>}
-            <Btn disabled={action.busy} onClick={closeTemplate}>닫기</Btn>
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
+              <Btn disabled={action.busy} onClick={closeTemplate}>닫기</Btn>
+              {!templates.loading && template && (
+                <Btn variant="primary" disabled={!canEdit || !plan.length} onClick={applyTemplate}>
+                  미리보기 일정으로 작업 추가
+                </Btn>
+              )}
+            </div>
           </section>
         )}
-        <div className="grid gap-4 lg:grid-cols-[12rem_minmax(0,1fr)]">
-          <aside className="flex min-h-0 min-w-0 flex-col gap-3 rounded-xl border border-border p-4 lg:[contain:size]">
-            <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">일정 배치</h2><Btn size="sm" disabled={!canEdit} onClick={() => setPanel("task")}>작업 추가</Btn></div>
+        <div className={`relative grid grid-cols-[minmax(0,1fr)] rounded-xl border border-border ${showTaskList ? "lg:grid-cols-[var(--task-list-width)_1px_minmax(0,1fr)]" : ""}`}
+          style={{ "--task-list-width": `${taskListWidth}px` } as CSSProperties}>
+            <Btn size="sm" variant="ghost" className="absolute left-3 top-[18px] z-10 size-7 px-0" aria-controls={taskListId}
+              aria-expanded={showTaskList} aria-label={taskListToggleLabel} title={taskListToggleLabel}
+              onClick={() => {
+                setSelected(null);
+                setShowTaskList(!showTaskList);
+              }}>
+              {showTaskList
+                ? <PanelLeftClose aria-hidden="true" className="size-4" />
+                : <PanelLeftOpen aria-hidden="true" className="size-4" />}
+            </Btn>
+          <aside id={taskListId} className={`min-h-0 min-w-0 flex-col gap-3 px-4 pt-5 pb-4 lg:[contain:size] ${showTaskList ? "flex" : "hidden"}`}>
+            <div className="flex items-center justify-between gap-1 pl-7"><h2 className="text-sm font-semibold">일정 배치</h2><Btn size="sm" disabled={!canEdit} onClick={() => setPanel("task")}>작업 추가</Btn></div>
             {panel === "task" && <TaskForm busy={action.busy} onCancel={() => setPanel(null)} onSave={input => {
               if (!canEdit) return;
               void action.run(() => tasksApi.create(project.id, input), () => { setPanel(null); query.retry(); });
             }} />}
-            {visible.some(task => task.dueDate) && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" checked={includeScheduled} onChange={event => {
-                  setIncludeScheduled(event.target.checked);
-                  setSelected(null);
-                }} />
-                배치된 작업도 보기
-              </label>
-            )}
             <div className="min-h-0 max-h-64 space-y-3 overflow-y-auto p-0.5 lg:max-h-none" role="region" aria-label="일정 배치 작업 목록" tabIndex={0}>
-              {placementTasks.map(task => (
+              {visible.map(task => (
                 <button key={task.id} type="button" disabled={!canEdit} draggable={canEdit} aria-pressed={selected === task.id}
                   className="block w-full rounded-md border border-border p-2 text-left text-sm aria-pressed:bg-blue-50"
                   onDragStart={event => startDrag(event, { id: task.id, edge: "move" })} onDragEnd={clearDrag}
@@ -328,11 +345,55 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                   <span className="text-xs text-muted-foreground">{task.assignees.map(member => member.nickname).join(", ") || "미배정"} · {task.dueDate ? datePart(task.dueDate) : "일정 미정"}</span>
                 </button>
               ))}
-              {tasks && !placementTasks.length && <p className="text-sm text-muted-foreground">일정 미정 작업이 없습니다.</p>}
+              {tasks && !visible.length && <p className="text-sm text-muted-foreground">표시할 작업이 없습니다.</p>}
             </div>
           </aside>
-          <section className="min-w-0 rounded-xl border border-border" aria-label="간트 달력">
-            <div className="flex flex-wrap items-center gap-2 p-3">
+          {showTaskList && (
+            <div role="separator" tabIndex={0} aria-orientation="vertical" aria-label="일정 배치 목록 너비"
+              aria-controls={taskListId} aria-valuemin={minTaskListWidth} aria-valuemax={maxTaskListWidth} aria-valuenow={taskListWidth}
+              title="드래그하여 작업 목록 너비 조절"
+              className="group relative z-20 hidden touch-none cursor-col-resize select-none items-center justify-center bg-border outline-none before:absolute before:inset-y-0 before:left-1/2 before:w-4 before:-translate-x-1/2 before:content-[''] hover:bg-muted-foreground/50 focus-visible:bg-ring active:bg-ring lg:flex"
+              onPointerDown={event => {
+                if (event.button !== 0 || !event.isPrimary) return;
+                panelResize.current = { pointerId: event.pointerId, x: event.clientX, width: taskListWidth };
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={event => {
+                const resize = panelResize.current;
+                if (resize?.pointerId !== event.pointerId) return;
+                resizeTaskList(resize.width + event.clientX - resize.x);
+              }}
+              onPointerUp={event => {
+                const resize = panelResize.current;
+                if (resize?.pointerId !== event.pointerId) return;
+                panelResize.current = null;
+                const width = resize.width + event.clientX - resize.x;
+                if (width > collapseTaskListWidth) {
+                  resizeTaskList(width);
+                  return;
+                }
+                resizeTaskList(resize.width);
+                setSelected(null);
+                setShowTaskList(false);
+              }}
+              onLostPointerCapture={() => { panelResize.current = null; }}
+              onKeyDown={event => {
+                let next: number;
+                switch (event.key) {
+                  case "ArrowLeft": next = taskListWidth - 16; break;
+                  case "ArrowRight": next = taskListWidth + 16; break;
+                  case "Home": next = minTaskListWidth; break;
+                  case "End": next = maxTaskListWidth; break;
+                  default: return;
+                }
+                event.preventDefault();
+                resizeTaskList(next);
+              }}>
+              <span aria-hidden="true" className="pointer-events-none absolute h-8 w-1.5 rounded-full border border-border bg-background group-hover:border-muted-foreground/50 group-focus-visible:border-ring" />
+            </div>
+          )}
+          <section className={`min-w-0 overflow-hidden rounded-b-xl lg:rounded-bl-none lg:rounded-tr-xl ${showTaskList ? "border-t border-border lg:border-t-0" : "rounded-t-xl lg:rounded-bl-xl"}`} aria-label="간트 달력">
+            <div className={`flex flex-wrap items-center gap-2 px-3 pt-5 pb-3 ${showTaskList ? "" : "pl-12"}`}>
               <Btn size="sm" aria-label="이전 기간" onClick={() => showPeriod(shift(range.start, -gap(range.start, range.end) - 1), gap(range.start, range.end) + 1)}>←</Btn>
               <span className="text-sm font-medium tabular-nums">
                 {dragDates && dragFirst >= 0 ? `${dragDates.start} ~ ${dragDates.end}` : `${range.start} ~ ${range.end}`}
@@ -355,12 +416,13 @@ export function ProjectCalendarPanel({ project, query, recommendedType, onRecomm
                 if (editTask) save(editTask, preview);
                 else {
                   const values = new FormData(event.currentTarget);
-                  setView({
+                  setView(current => ({
+                    ...current,
                     range: preview,
                     assignee: String(values.get("assignee") ?? ""),
                     weekends: values.has("weekends"),
                     showLinks: values.has("showLinks"),
-                  });
+                  }));
                   setSelected(null);
                 }
                 setPanel(null);

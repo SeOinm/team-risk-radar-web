@@ -26,7 +26,7 @@ function SettingsForm({ project, reload }: { project?: ProjectResponse; reload?:
   const inFlight = useRef(false);
   const manager = !project || project.myRole !== 'MEMBER';
   const writable = manager && (!project || project.status === 'IN_PROGRESS') && !locked;
-  const detailPath = project ? `/projects/${project.id}` : '/dashboard';
+  const backPath = project ? `/projects/${project.id}/tasks` : '/dashboard';
   const [title, setTitle] = useState(project?.title ?? 'HCI 기말 발표 과제');
   const [className, setClassName] = useState(project ? project.className ?? '' : '인간컴퓨터상호작용');
   const [deadline, setDeadline] = useState(project?.deadline ?? '2024-06-13');
@@ -80,7 +80,7 @@ function SettingsForm({ project, reload }: { project?: ProjectResponse; reload?:
       <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center">
         <div className="max-w-2xl mx-auto px-6 w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <NavBack fallback={detailPath} />
+            <NavBack fallback={backPath} />
             <div className="h-4 w-px bg-[#E5E7EB]" />
             <span className="text-[13px] font-semibold text-[#111827]">프로젝트 설정</span>
           </div>

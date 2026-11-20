@@ -53,7 +53,7 @@ function Overview({ project }: { project: ProjectResponse }) {
   return (
     <div className="min-h-screen bg-white">
       <header className="h-12 flex items-center gap-3 px-4 border-b border-border">
-        <Link to={`/projects/${project.id}`} className="truncate text-sm">
+        <Link to={`/projects/${project.id}/tasks`} className="truncate text-sm">
           〈 {project.title}
         </Link>
         <Link to="/projects" className="ml-auto shrink-0 text-sm">

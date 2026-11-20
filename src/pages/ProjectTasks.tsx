@@ -1,24 +1,37 @@
 import { moveTask } from "@/lib/taskOrder";
 import { ApiError } from "@/api/client";
-import { Plus, ChevronDown, ChevronLeft, SlidersHorizontal, GripVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Plus, ChevronDown, ClipboardCheck, Ellipsis, Info, SlidersHorizontal, GripVertical, Users } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator,
+  DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { ProjectCalendarPanel } from "@/pages/ProjectCalendar";
 import { ProjectLoader } from "@/components/ProjectLoader";
 import { TaskForm } from "@/components/TaskForm";
 import {
+  Badge,
   Btn,
+  NavBack,
+  RoleBadgeDs,
   Input,
   RiskScore,
   SizeBadgeDs,
   ProgressBar,
 } from "@/components/ds";
 import { tasksApi, TASK_STATUS, type Task } from "@/api/tasks";
-import type { ProjectResponse } from "@/api/projects";
+import { DAY_LABELS, ROLE_LABELS, STATUS_LABELS, type ProjectResponse } from "@/api/projects";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useApiAction } from "@/hooks/useApiAction";
+export function ProjectTasksRedirect() {
+  const { projectId } = useParams();
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: `/projects/${projectId}/tasks`, search, hash }} replace />;
+}
+
 export function ProjectTasks() {
   const { projectId = "" } = useParams();
   return (
@@ -37,6 +50,8 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   const q = useApiQuery(load);
   const action = useApiAction();
   const navigate = useNavigate();
+  const projectPath = `/projects/${project.id}`;
+  const canManage = project.myRole !== "MEMBER";
   const [form, setForm] = useState<"create" | "templates" | null>(null);
   const [filter, setFilter] = useState("전체");
   const [sort, setSort] = useState("기본 순서");
@@ -108,19 +123,75 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
   };
   return (
     <div className="min-h-screen bg-white">
-      <header className="h-12 flex items-center border-b border-border px-4">
-        <Link
-          to={`/projects/${project.id}`}
-          aria-label={`${project.title} 프로젝트 상세로 이동`}
-          title={project.title}
-          className="inline-flex min-w-0 max-w-full items-center gap-2 rounded text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ChevronLeft aria-hidden="true" className="h-4 w-4 shrink-0" />
-          <span className="truncate">{project.title}</span>
-        </Link>
+      <header className="flex h-12 items-center border-b border-border">
+        <NavBack label="목록" onClick={() => navigate("/projects")} />
+        <span className="text-sm font-semibold">작업 보드</span>
       </header>
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-4 sm:py-6">
-        <h1 className="text-lg font-semibold">작업 보드</h1>
+        <section aria-labelledby="project-heading">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1 id="project-heading" className="min-w-0 break-words text-lg font-semibold">{project.title}</h1>
+              <RoleBadgeDs role={ROLE_LABELS[project.myRole]} />
+              <Badge variant={project.status === "DONE" ? "safe" : "default"}>{STATUS_LABELS[project.status]}</Badge>
+              {project.className && <span className="text-sm text-muted-foreground">{project.className}</span>}
+            </div>
+            <div className="shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Btn variant="ghost" aria-label="프로젝트 메뉴" className="size-8 px-0 data-[state=open]:bg-muted">
+                    <Ellipsis aria-hidden="true" className="size-5" />
+                  </Btn>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={6} className="w-40">
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <ClipboardCheck aria-hidden="true" className="size-4 text-muted-foreground" />체크인
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent sideOffset={4} className="min-w-36">
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/checkin`}>체크인 작성</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/checkin-history`}>내 체크인 기록</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/checkin-status`}>팀 체크인 현황</Link></DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <Users aria-hidden="true" className="size-4 text-muted-foreground" />
+                      {canManage && project.status !== "CLOSED" ? "팀·설정" : "팀원"}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent sideOffset={4} className="min-w-36">
+                        <DropdownMenuItem asChild><Link to={`${projectPath}/members`}>팀원 {canManage ? "관리" : "목록"}</Link></DropdownMenuItem>
+                        {canManage && project.status === "IN_PROGRESS" &&
+                          <DropdownMenuItem asChild><Link to={`${projectPath}/invite`}>팀원 초대</Link></DropdownMenuItem>}
+                        {canManage && project.status !== "CLOSED" &&
+                          <DropdownMenuItem asChild><Link to={`${projectPath}/settings`}>프로젝트 설정</Link></DropdownMenuItem>}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <Info aria-hidden="true" className="size-4 text-muted-foreground" />프로젝트 정보
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent sideOffset={4} className="min-w-52">
+                        <dl className="grid gap-2 p-2 text-xs">
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">최종 마감일</dt><dd>{project.deadline}</dd></div>
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">체크인 주기</dt><dd>주 {project.checkinFrequency}회</dd></div>
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">체크인 요일</dt><dd>{project.checkinDays.map(day => DAY_LABELS[day]).join(" · ")}</dd></div>
+                          <div className="flex justify-between gap-3"><dt className="text-muted-foreground">체크인 마감 시간</dt><dd>{project.checkinTime.slice(0, 5)}</dd></div>
+                        </dl>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </section>
         <ProjectCalendarPanel project={project} query={q} recommendedType={recommendedType} onRecommendationDismiss={() => {
           if (!recommendedType) return;
           setSearchParams(current => {
@@ -151,17 +222,14 @@ function TaskBoardData({ project }: { project: ProjectResponse }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            정렬
-            <span className="relative">
-              <select aria-label="작업 정렬" value={sort} onChange={(e) => setSort(e.target.value)}
-                className="appearance-none bg-transparent h-8 pl-2 pr-6 text-[12px] text-foreground rounded outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {["기본 순서", "마감일", "진행률"].map((s) => <option key={s} value={s}>{s}</option>)}
-                <option disabled>리스크 · 연동 보류</option>
-              </select>
-              <ChevronDown aria-hidden="true" className="w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </span>
-          </label>
+          <div className="relative">
+            <select aria-label="작업 정렬" value={sort} onChange={(e) => setSort(e.target.value)}
+              className="h-8 cursor-pointer appearance-none rounded-md border border-border bg-white pl-3 pr-8 text-xs font-medium text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {["기본 순서", "마감일", "진행률"].map((s) => <option key={s} value={s}>{s}</option>)}
+              <option disabled>리스크 · 연동 보류</option>
+            </select>
+            <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          </div>
           {project.myRole !== "MEMBER" && (
             <div className="flex items-center gap-2 ml-auto">
               <Btn variant="ghost" disabled={!writable || action.busy} onClick={() => setForm("templates")}>템플릿으로 추가</Btn>

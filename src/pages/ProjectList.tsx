@@ -97,7 +97,7 @@ export function ProjectList() {
                 <div key={project.id}>
                   {i > 0 && <Divider />}
                   <button
-                    onClick={() => navigate(`/projects/${project.id}`)}
+                    onClick={() => navigate(`/projects/${project.id}/tasks`)}
                     className="w-full flex items-center gap-4 px-4 py-3 lg:gap-[1.1rem] lg:px-[1.1rem] lg:py-[0.825rem] hover:bg-[#F9FAFB] transition-colors text-left group"
                   >
                     {/* Status dot */}

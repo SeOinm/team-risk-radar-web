@@ -72,7 +72,7 @@ function TeamView({
   return (
     <div className="min-h-screen bg-white">
       <header className="h-12 flex items-center border-b border-border">
-        <NavBack fallback={`/projects/${project.id}`} />
+        <NavBack fallback={`/projects/${project.id}/tasks`} />
         <span className="text-sm font-semibold">
           {inviteOnly ? "팀원 초대" : "팀원 관리"}
         </span>
@@ -242,8 +242,8 @@ function TeamView({
             </section>
           </>
         )}
-        <Btn onClick={() => navigate(`/projects/${project.id}`)}>
-          프로젝트 상세로 이동
+        <Btn onClick={() => navigate(`/projects/${project.id}/tasks`)}>
+          작업 보드로 이동
         </Btn>
       </main>
       {confirmation && (

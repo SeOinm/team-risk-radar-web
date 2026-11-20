@@ -50,7 +50,7 @@ function CheckinData({ project }: { project: ProjectResponse }) {
     <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-30 h-12 border-b border-border bg-white flex items-center px-4 gap-3">
         <Link
-          to={`/projects/${project.id}`}
+          to={`/projects/${project.id}/tasks`}
           className="min-w-0 truncate text-sm text-muted-foreground hover:text-foreground"
         >
           〈 {project.title}

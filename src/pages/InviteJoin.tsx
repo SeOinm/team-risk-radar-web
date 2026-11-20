@@ -94,7 +94,7 @@ function JoinActions({ token, preview }: { token: string; preview: Preview }) {
             <Btn
               variant="primary"
               onClick={() =>
-                navigate(`/projects/${preview.projectId}`, { replace: true })
+                navigate(`/projects/${preview.projectId}/tasks`, { replace: true })
               }
             >
               프로젝트로 이동
