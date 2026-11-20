@@ -5,7 +5,7 @@ import { ProjectTasks, ProjectTasksRedirect } from '@/pages/ProjectTasks';
 import { ProjectTaskDetail } from '@/pages/ProjectTaskDetail';
 import { ProjectTeam } from '@/pages/ProjectTeam';
 import { RequireAuth } from '@/auth/RequireAuth';
-import { Routes, Route } from 'react-router';
+import { Navigate, Routes, Route } from 'react-router';
 import { ProjectList } from '@/pages/ProjectList';
 import { Home } from '@/pages/Home';
 import { AuthScreens } from '@/pages/AuthScreens';
@@ -24,7 +24,6 @@ import { TaskDetail } from '@/pages/TaskDetail';
 import { CheckinStatus } from '@/pages/CheckinStatus';
 import { MemberManage } from '@/pages/MemberManage';
 import { MemberParticipation } from '@/pages/MemberParticipation';
-import { Timeline } from '@/pages/Timeline';
 import { FinalReport } from '@/pages/FinalReport';
 import { ProjectSettings } from '@/pages/ProjectSettings';
 import { ProjectClose } from '@/pages/ProjectClose';
@@ -79,7 +78,7 @@ export default function App() {
       <Route path="/checkin-status" element={<CheckinStatus />} />
       <Route path="/members" element={<MemberManage />} />
       <Route path="/member/:id" element={<MemberParticipation />} />
-      <Route path="/timeline" element={<Timeline />} />
+      <Route path="/timeline" element={<Navigate to="/task-board#calendar" replace />} />
       <Route path="/report" element={<FinalReport />} />
       <Route path="/settings" element={<ProjectSettings />} />
       <Route path="/close-project" element={<ProjectClose />} />

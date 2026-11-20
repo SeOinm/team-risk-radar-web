@@ -145,7 +145,6 @@ export function ProjectList() {
               { label: '팀원 홈', path: '/member-home' },
               { label: '1분 체크인', path: '/checkin' },
               { label: '작업 보드', path: '/task-board' },
-              { label: '타임라인', path: '/timeline' },
               { label: '체크인 현황', path: '/checkin-status' },
               { label: '팀원 관리', path: '/members' },
               { label: '최종 리포트', path: '/report' },
