@@ -1,4 +1,4 @@
-import { Link as LinkIcon } from 'lucide-react';
+import { Link } from 'react-router';
 import { sampleMembers } from '@/data/sampleData';
 import { Badge, RoleBadgeDs, NavBack } from '@/components/ds';
 
@@ -14,15 +14,10 @@ const projectSummary = {
 };
 
 const memberSummary = [
-  { id: 'm1', checkinRate: 100, completedTasks: 1, delayedTasks: 0, lateCheckins: 0, missedCheckins: 0, artifactLinks: 2 },
-  { id: 'm2', checkinRate: 40, completedTasks: 0, delayedTasks: 1, lateCheckins: 0, missedCheckins: 2, artifactLinks: 0 },
-  { id: 'm3', checkinRate: 100, completedTasks: 0, delayedTasks: 0, lateCheckins: 0, missedCheckins: 0, artifactLinks: 0 },
-  { id: 'm4', checkinRate: 80, completedTasks: 0, delayedTasks: 0, lateCheckins: 1, missedCheckins: 0, artifactLinks: 0 },
-];
-
-const outputs = [
-  { taskName: '주제 확정', assignee: '김지훈', date: '2024-05-01', link: 'https://docs.google.com/...' },
-  { taskName: '자료 조사', assignee: '박서연', date: '2024-05-30', link: 'https://docs.google.com/...' },
+  { id: 'm1', checkinRate: 100, completedTasks: 1, delayedTasks: 0, lateCheckins: 0, missedCheckins: 0 },
+  { id: 'm2', checkinRate: 40, completedTasks: 0, delayedTasks: 1, lateCheckins: 0, missedCheckins: 2 },
+  { id: 'm3', checkinRate: 100, completedTasks: 0, delayedTasks: 0, lateCheckins: 0, missedCheckins: 0 },
+  { id: 'm4', checkinRate: 80, completedTasks: 0, delayedTasks: 0, lateCheckins: 1, missedCheckins: 0 },
 ];
 
 const blockedHistory = [
@@ -39,194 +34,152 @@ const assigneeChanges: { taskName: string; from: string; to: string; date: strin
 
 const memberMap = Object.fromEntries(sampleMembers.map(m => [m.id, m]));
 
+const activity = [
+  ...blockedHistory.map(item => ({
+    date: item.date,
+    title: item.taskName,
+    detail: `${item.assignee} · ${item.reason}`,
+    label: item.resolved ? '막힘 해결' : '막힘',
+    variant: item.resolved ? 'safe' as const : 'caution' as const,
+  })),
+  ...checkinMissedHistory.map(item => ({
+    date: item.date,
+    title: item.name,
+    detail: `연속 ${item.consecutive}회 누락`,
+    label: '체크인 누락',
+    variant: 'critical' as const,
+  })),
+  ...cancelledTasks.map(item => ({
+    date: item.cancelledAt,
+    title: item.title,
+    detail: '',
+    label: '작업 취소',
+    variant: 'default' as const,
+  })),
+  ...assigneeChanges.map(item => ({
+    date: item.date,
+    title: item.taskName,
+    detail: `${item.from} → ${item.to}`,
+    label: '담당자 변경',
+    variant: 'default' as const,
+  })),
+].sort((a, b) => b.date.localeCompare(a.date));
+
 export function FinalReport() {
-  const checkinRate = Math.round((projectSummary.completedCheckins / projectSummary.totalCheckins) * 100);
+  const checkinRate = Math.round(projectSummary.completedCheckins / projectSummary.totalCheckins * 100);
+  const delayedTasks = memberSummary.reduce((total, member) => total + member.delayedTasks, 0);
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="h-12 border-b border-[#E5E7EB] bg-white sticky top-0 z-20 flex items-center justify-between px-6">
-        <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="border-b border-border">
+        <div className="mx-auto flex h-12 max-w-5xl items-center justify-between gap-3 pr-6">
+          <div className="flex h-full min-w-0 items-center gap-2">
             <NavBack fallback="/dashboard" />
-            <div className="h-4 w-px bg-[#E5E7EB]" />
-            <span className="text-[13px] font-semibold text-[#111827]">최종 리포트</span>
+            <span className="truncate text-sm font-medium">최종 리포트</span>
           </div>
-          <p className="text-[11px] text-[#9CA3AF]">PDF 내보내기는 MVP 이후 제공 예정</p>
+          <Link to="/task-board" className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
+            작업 보드
+          </Link>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-6 space-y-6">
-
-        {/* Project Summary */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">프로젝트 요약</span>
-          </div>
-          <div className="px-5 py-4">
-            <p className="text-[16px] font-semibold text-[#111827] mb-1">{projectSummary.name}</p>
-            <p className="text-[12px] text-[#9CA3AF] mb-4">{projectSummary.course} · {projectSummary.startDate} ~ {projectSummary.endDate}</p>
-            <div className="grid grid-cols-4 gap-4">
-              <Stat label="팀원" value={`${sampleMembers.length}명`} />
-              <Stat label="작업 완료" value={`${projectSummary.completedTasks}/${projectSummary.totalTasks}`} />
-              <Stat label="체크인 완료율" value={`${checkinRate}%`} warn={checkinRate < 70} />
-              <Stat label="지연 작업" value="1개" warn />
-            </div>
-          </div>
-        </section>
-
-        {/* Member summary */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">팀원별 참여 요약</span>
-          </div>
-          <div className="divide-y divide-[#E5E7EB]">
-            {memberSummary.map((ms) => {
-              const member = memberMap[ms.id];
-              if (!member) return null;
-              return (
-                <div key={ms.id} className="px-5 py-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-full bg-[#F3F4F6] flex items-center justify-center text-[12px] font-semibold text-[#374151]">
-                      {member.name[0]}
-                    </div>
-                    <span className="text-[13px] font-medium text-[#111827]">{member.name}</span>
-                    <RoleBadgeDs role={member.role} />
-                  </div>
-                  <div className="grid grid-cols-6 gap-2">
-                    <Stat label="체크인율" value={`${ms.checkinRate}%`} warn={ms.checkinRate < 70} />
-                    <Stat label="완료 작업" value={`${ms.completedTasks}개`} />
-                    <Stat label="지연 작업" value={`${ms.delayedTasks}개`} warn={ms.delayedTasks > 0} />
-                    <Stat label="지각 체크인" value={`${ms.lateCheckins}회`} warn={ms.lateCheckins > 1} />
-                    <Stat label="누락 체크인" value={`${ms.missedCheckins}회`} warn={ms.missedCheckins > 0} />
-                    <Stat label="산출물" value={`${ms.artifactLinks}개`} warn={ms.artifactLinks === 0} />
-                  </div>
+      <main className="mx-auto max-w-4xl px-6 py-8 sm:py-12">
+        <section aria-labelledby="report-title">
+          <h1 id="report-title" className="text-3xl font-semibold tracking-tight sm:text-4xl">{projectSummary.name}</h1>
+          <p className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-base text-muted-foreground">
+            <span>{projectSummary.course}</span>
+            <span aria-hidden="true">·</span>
+            <span>{projectSummary.startDate} ~ {projectSummary.endDate}</span>
+          </p>
+          <div className="mt-7 grid gap-5 rounded-xl border border-border bg-slate-50/70 p-5 sm:grid-cols-2 sm:gap-0 sm:p-6">
+            <dl className="grid grid-cols-2 items-center gap-4 sm:pr-6">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground sm:text-base">완료 작업</dt>
+                <dd className="mt-2 text-3xl font-semibold tabular-nums sm:text-4xl">
+                  {projectSummary.completedTasks}<span className="text-base font-medium text-muted-foreground"> / {projectSummary.totalTasks}</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground sm:text-base">지연 작업</dt>
+                <dd className="mt-2 text-3xl font-semibold tabular-nums sm:text-4xl">{delayedTasks}<span className="ml-1 text-base font-medium text-muted-foreground">개</span></dd>
+              </div>
+            </dl>
+            <dl className="grid grid-cols-[1fr_auto] items-center gap-x-4 border-t border-border pt-5 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
+              <dt className="self-end text-sm font-medium text-muted-foreground sm:text-base">체크인 완료율</dt>
+              <dd className="col-start-2 row-span-2 row-start-1">
+                <div className="grid size-16 place-items-center rounded-full sm:size-20"
+                  style={{ background: `conic-gradient(var(--color-blue-600) 0 ${checkinRate}%, var(--color-slate-200) ${checkinRate}% 100%)` }}>
+                  <span className="grid size-[3.25rem] place-items-center rounded-full bg-white text-lg font-semibold tabular-nums sm:size-[4.125rem] sm:text-2xl">
+                    {checkinRate}%
+                  </span>
                 </div>
-              );
-            })}
+              </dd>
+              <dd className="mt-1 self-start text-base font-semibold tabular-nums">
+                {projectSummary.totalCheckins}건 중 {projectSummary.completedCheckins}건 완료
+              </dd>
+            </dl>
           </div>
         </section>
 
-        {/* Artifacts */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">산출물 근거</span>
+        <section className="mt-9" aria-labelledby="participation-title">
+          <h2 id="participation-title" className="text-xl font-semibold">팀원별 참여 <span className="ml-1 text-sm font-normal text-muted-foreground">{sampleMembers.length}명</span></h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[36rem] text-left text-base" aria-labelledby="participation-title">
+              <thead className="border-y border-border bg-slate-50/70 text-sm text-muted-foreground">
+                <tr>
+                  <th scope="col" className="px-2 py-2.5 font-medium">팀원</th>
+                  <th scope="col" className="px-2 py-2.5 font-medium">체크인율</th>
+                  <th scope="col" className="px-2 py-2.5 text-right font-medium">완료 작업</th>
+                  <th scope="col" className="px-2 py-2.5 text-right font-medium">지연 작업</th>
+                  <th scope="col" className="px-2 py-2.5 text-right font-medium">지각</th>
+                  <th scope="col" className="px-2 py-2.5 text-right font-medium">누락</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border border-b border-border">
+                {memberSummary.map(summary => {
+                  const member = memberMap[summary.id];
+                  if (!member) return null;
+                  return (
+                    <tr key={summary.id}>
+                      <th scope="row" className="px-2 py-3 font-medium">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {member.name}
+                          <RoleBadgeDs role={member.role} />
+                        </div>
+                      </th>
+                      <td className="px-2 py-3 font-medium tabular-nums">{summary.checkinRate}%</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{summary.completedTasks}개</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{summary.delayedTasks}개</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{summary.lateCheckins}회</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{summary.missedCheckins}회</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          {outputs.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[12px] text-[#9CA3AF]">등록된 산출물이 없습니다</div>
+        </section>
+
+        <section className="mt-9" aria-labelledby="activity-title">
+          <h2 id="activity-title" className="text-xl font-semibold">주요 기록</h2>
+          {activity.length === 0 ? (
+            <p className="mt-3 border-y border-border py-4 text-sm text-muted-foreground">기록된 활동이 없습니다.</p>
           ) : (
-            <div className="divide-y divide-[#E5E7EB]">
-              {outputs.map((o, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-[13px] font-medium text-[#111827]">{o.taskName}</p>
-                    <p className="text-[11px] text-[#9CA3AF]">{o.assignee} · {o.date}</p>
+            <ol className="mt-3 divide-y divide-border border-y border-border">
+              {activity.map((item, index) => (
+                <li key={`${item.date}-${index}`} className="grid gap-1 py-3 sm:grid-cols-[7rem_1fr] sm:gap-3">
+                  <time dateTime={item.date} className="text-sm tabular-nums text-muted-foreground sm:pt-1">{item.date}</time>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
+                    <Badge variant={item.variant}>{item.label}</Badge>
+                    <span className="font-medium">{item.title}</span>
+                    {item.detail && <span className="text-sm text-muted-foreground">{item.detail}</span>}
                   </div>
-                  <a href={o.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[12px] text-brand-blue hover:underline">
-                    <LinkIcon className="w-3 h-3" /> 링크 보기
-                  </a>
-                </div>
+                </li>
               ))}
-            </div>
-          )}
-        </section>
-
-        {/* Blocked history */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">막힘 기록</span>
-          </div>
-          {blockedHistory.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[12px] text-[#9CA3AF]">막힘 기록이 없습니다</div>
-          ) : (
-            <div className="divide-y divide-[#E5E7EB]">
-              {blockedHistory.map((r, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-[13px] font-medium text-[#111827]">{r.taskName}</p>
-                    <p className="text-[11px] text-[#9CA3AF]">{r.assignee} · {r.date} · 사유: {r.reason}</p>
-                  </div>
-                  <Badge variant={r.resolved ? 'safe' : 'caution'}>
-                    {r.resolved ? '해결됨' : '미해결'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Check-in missed history */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">체크인 누락 기록</span>
-          </div>
-          {checkinMissedHistory.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[12px] text-[#9CA3AF]">모든 팀원이 정기적으로 체크인에 참여했습니다</div>
-          ) : (
-            <div className="divide-y divide-[#E5E7EB]">
-              {checkinMissedHistory.map((r, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3">
-                  <span className="text-[13px] text-[#111827]">{r.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#9CA3AF]">{r.date}</span>
-                    <Badge variant="critical">연속 {r.consecutive}회 누락</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Cancelled tasks */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">취소 작업 기록</span>
-          </div>
-          {cancelledTasks.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[12px] text-[#9CA3AF]">취소된 작업이 없습니다</div>
-          ) : (
-            <div className="divide-y divide-[#E5E7EB]">
-              {cancelledTasks.map((t, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3">
-                  <span className="text-[13px] text-[#9CA3AF] line-through">{t.title}</span>
-                  <span className="text-[11px] text-[#9CA3AF]">{t.cancelledAt}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Assignee changes */}
-        <section className="border border-[#E5E7EB] rounded-md overflow-hidden">
-          <div className="px-5 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB]">
-            <span className="text-[12px] font-semibold text-[#374151]">담당자 변경 이력</span>
-          </div>
-          {assigneeChanges.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[12px] text-[#9CA3AF]">담당자 변경 이력이 없습니다</div>
-          ) : (
-            <div className="divide-y divide-[#E5E7EB]">
-              {assigneeChanges.map((c, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <span className="text-[13px] text-[#111827]">{c.taskName}</span>
-                    <span className="text-[12px] text-[#9CA3AF] ml-2">{c.from} → {c.to}</span>
-                  </div>
-                  <span className="text-[11px] text-[#9CA3AF]">{c.date}</span>
-                </div>
-              ))}
-            </div>
+            </ol>
           )}
         </section>
       </main>
-    </div>
-  );
-}
-
-function Stat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
-  return (
-    <div className={`p-2.5 rounded-md border ${warn ? 'bg-[#FEF2F2] border-[#FECACA]' : 'bg-[#F9FAFB] border-[#E5E7EB]'}`}>
-      <p className="text-[10px] text-[#9CA3AF] mb-0.5">{label}</p>
-      <p className={`text-[14px] font-semibold ${warn ? 'text-[#DC2626]' : 'text-[#111827]'}`}>{value}</p>
     </div>
   );
 }
